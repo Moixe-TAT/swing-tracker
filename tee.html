@@ -7,69 +7,91 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #0a0a0a; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding-bottom: 40px; }
+
   .topbar { display: flex; align-items: center; width: 100%; max-width: 480px; padding: 14px; gap: 10px; }
   .back-btn { background: #1a1a1a; border: none; color: #fff; width: 36px; height: 36px; border-radius: 10px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .topbar-title { font-size: 16px; font-weight: 600; }
   .topbar-badge { margin-left: auto; background: #1a1a1a; border-radius: 20px; padding: 4px 12px; font-size: 12px; color: #888; }
 
-  #container { position: relative; width: 100%; max-width: 480px; }
+  #container { position: relative; width: 100%; max-width: 480px; cursor: crosshair; }
   video { width: 100%; display: block; }
   canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-
   .rec-indicator { position: absolute; top: 10px; right: 10px; background: rgba(239,68,68,0.85); color: #fff; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; display: none; align-items: center; gap: 6px; }
   .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: blink 0.8s infinite; }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
-
   .countdown { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); color: #fff; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 20px; display: none; }
+  .tap-hint { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: #fff; font-size: 12px; padding: 6px 14px; border-radius: 20px; white-space: nowrap; }
 
-  .status-bar { width: 100%; max-width: 480px; padding: 10px 14px; }
+  .status-bar { width: 100%; max-width: 480px; padding: 10px 14px 4px; }
   .status-text { font-size: 13px; color: #f59e0b; min-height: 20px; }
 
-  .phase-indicator { display: flex; gap: 8px; width: 100%; max-width: 480px; padding: 0 14px 10px; }
-  .phase { flex: 1; padding: 8px; border-radius: 10px; background: #1a1a1a; text-align: center; font-size: 11px; color: #555; transition: all 0.3s; }
-  .phase.active { color: #fff; }
-  .phase-1.active { background: #1d3a5f; color: #3b82f6; }
-  .phase-2.active { background: #3d2800; color: #f59e0b; }
-  .phase-3.active { background: #3d0000; color: #ef4444; }
+  .detect-row { display: flex; gap: 8px; width: 100%; max-width: 480px; padding: 0 14px 6px; }
+  .detect-item { flex: 1; background: #1a1a1a; border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #555; transition: all 0.3s; }
+  .detect-item.ok { background: #0f2e1a; color: #22c55e; }
+  .detect-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; flex-shrink: 0; }
+  .detect-item.ok .detect-dot { background: #22c55e; }
 
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; max-width: 480px; padding: 0 14px; }
-  .stat { background: #1a1a1a; border-radius: 10px; padding: 12px; text-align: center; }
-  .stat-label { font-size: 11px; color: #666; margin-bottom: 4px; }
-  .stat-value { font-size: 20px; font-weight: 500; }
+  .level-btn-wrap { width: 100%; max-width: 480px; padding: 0 14px 10px; display: flex; gap: 8px; }
+  .level-skip-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #333; background: #1a1a1a; color: #f59e0b; font-size: 13px; cursor: pointer; }
 
-  .legend { display: flex; gap: 14px; padding: 10px 14px; }
-  .leg { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #666; }
-  .dot { width: 18px; height: 3px; border-radius: 2px; }
+  /* 數據卡片區 */
+  .data-row { display: flex; gap: 10px; width: 100%; max-width: 480px; padding: 0 14px; }
+  .data-card { flex: 1; background: #1a1a1a; border-radius: 12px; padding: 12px; }
+  .data-card-title { font-size: 11px; color: #666; margin-bottom: 8px; }
+  canvas.mini { width: 100%; border-radius: 8px; display: block; }
 
-  .btns { display: flex; gap: 10px; padding: 10px 14px; width: 100%; max-width: 480px; }
-  button.main { flex: 2; padding: 14px; border-radius: 12px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; background: #fff; color: #000; }
-  button.sub { flex: 1; padding: 14px; border-radius: 12px; border: none; font-size: 14px; cursor: pointer; background: #1a1a1a; color: #fff; }
-  button.recording { background: #ef4444; color: #fff; }
-  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .control-row { display: flex; gap: 10px; width: 100%; max-width: 480px; padding: 10px 14px; align-items: center; }
+  .lr-toggle { display: flex; background: #1a1a1a; border-radius: 10px; overflow: hidden; border: 1px solid #2a2a2a; flex-shrink: 0; }
+  .lr-btn { padding: 10px 14px; border: none; background: transparent; color: #555; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .lr-btn.active { background: #fff; color: #000; }
+  .btns { display: flex; gap: 8px; flex: 1; }
+  button.main { flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; background: #fff; color: #000; transition: all 0.2s; }
+  button.main:disabled { opacity: 0.35; cursor: not-allowed; }
+  button.main.ready { background: #22c55e; color: #fff; }
+  button.main.recording { background: #ef4444; color: #fff; }
+  button.sub { padding: 12px 14px; border-radius: 10px; border: none; font-size: 13px; cursor: pointer; background: #1a1a1a; color: #fff; }
 
   /* 列表 */
-  .list-title { width: 100%; max-width: 480px; padding: 4px 14px 10px; font-size: 13px; color: #666; font-weight: 500; }
-  .swing-list { width: 100%; max-width: 480px; padding: 0 14px; display: flex; flex-direction: column; gap: 10px; }
-  .swing-item { background: #1a1a1a; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-  .swing-item-top { display: flex; align-items: center; gap: 10px; }
-  .swing-num { background: #333; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
-  .swing-stats { display: flex; gap: 12px; flex: 1; }
+  .list-section { width: 100%; max-width: 480px; padding: 10px 14px 0; }
+  .list-title { font-size: 13px; color: #666; margin-bottom: 10px; }
+  .swing-list { display: flex; flex-direction: column; gap: 8px; }
+  .swing-item { background: #1a1a1a; border-radius: 12px; overflow: hidden; }
+  .swing-item.empty { opacity: 0.3; }
+  .swing-header { display: flex; align-items: center; gap: 10px; padding: 14px; }
+  .swing-num { background: #2a2a2a; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #555; flex-shrink: 0; }
+  .swing-item.filled .swing-num { background: #fff; color: #000; }
+  .swing-stats-row { display: flex; gap: 12px; flex: 1; }
   .swing-stat { display: flex; flex-direction: column; }
   .swing-stat-label { font-size: 10px; color: #555; }
-  .swing-stat-value { font-size: 14px; font-weight: 600; color: #fff; }
-  .swing-item-btns { display: flex; gap: 8px; }
-  .play-btn { flex: 1; padding: 8px; border-radius: 8px; border: none; background: #252525; color: #fff; font-size: 13px; cursor: pointer; }
-  .dl-btn { flex: 1; padding: 8px; border-radius: 8px; border: none; background: #252525; color: #3b82f6; font-size: 13px; cursor: pointer; }
+  .swing-stat-value { font-size: 14px; font-weight: 600; color: #444; }
+  .swing-item.filled .swing-stat-value { color: #fff; }
+  .swing-expand-btn { background: none; border: none; color: #666; font-size: 16px; cursor: pointer; padding: 0 4px; }
+  .swing-actions { display: flex; gap: 8px; padding: 0 14px 14px; }
+  .play-btn { flex: 1; padding: 8px; border-radius: 8px; border: none; background: #252525; color: #888; font-size: 13px; cursor: pointer; }
+  .swing-item.filled .play-btn { color: #fff; cursor: pointer; }
+  .dl-btn { flex: 1; padding: 8px; border-radius: 8px; border: none; background: #252525; color: #444; font-size: 13px; cursor: pointer; }
+  .swing-item.filled .dl-btn { color: #3b82f6; cursor: pointer; }
+  .swing-detail { display: none; border-top: 1px solid #252525; padding: 14px; }
+  .swing-detail.show { display: block; }
+  .detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+  .detail-card { background: #252525; border-radius: 8px; padding: 10px; text-align: center; }
+  .detail-label { font-size: 10px; color: #666; margin-bottom: 4px; }
+  .detail-value { font-size: 15px; font-weight: 600; }
+  .detail-unit { font-size: 10px; color: #555; }
 
-  /* 彈窗 */
-  .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 99; padding: 20px; }
+  /* 回放彈窗 */
+  .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); align-items: center; justify-content: center; z-index: 99; padding: 20px; flex-direction: column; gap: 10px; }
   .modal.show { display: flex; }
   .modal-box { background: #1a1a1a; border-radius: 16px; padding: 16px; width: 100%; max-width: 440px; }
-  .modal-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .modal-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
   .modal-title { font-size: 15px; font-weight: 600; }
   .modal-close { background: #333; border: none; color: #fff; width: 30px; height: 30px; border-radius: 8px; font-size: 16px; cursor: pointer; }
-  .modal-video { width: 100%; border-radius: 10px; background: #000; }
-  .modal-dl { width: 100%; margin-top: 10px; padding: 12px; border-radius: 10px; border: none; background: #3b82f6; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .modal-video-wrap { position: relative; }
+  .modal-video { width: 100%; border-radius: 10px; background: #000; display: block; }
+  .modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px; pointer-events: none; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .modal-dl { flex: 1; padding: 12px; border-radius: 10px; border: none; background: #3b82f6; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .modal-speed { flex: 1; padding: 12px; border-radius: 10px; border: none; background: #252525; color: #fff; font-size: 14px; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -77,7 +99,7 @@
 <div class="topbar">
   <button class="back-btn" onclick="location.href='index.html'">←</button>
   <span class="topbar-title">⚾ T座模式</span>
-  <span class="topbar-badge" id="step-badge">步驟 1／3</span>
+  <span class="topbar-badge" id="step-badge">準備中</span>
 </div>
 
 <div id="container">
@@ -85,47 +107,65 @@
   <canvas id="canvas"></canvas>
   <div class="rec-indicator" id="rec-indicator"><div class="rec-dot"></div> REC</div>
   <div class="countdown" id="countdown"></div>
+  <div class="tap-hint" id="tap-hint">👆 點擊畫面標記球的位置</div>
 </div>
 
 <div class="status-bar">
   <div class="status-text" id="status">載入中，請稍候...</div>
 </div>
 
-<div class="phase-indicator">
-  <div class="phase phase-1 active" id="ph1">① 對準球</div>
-  <div class="phase phase-2" id="ph2">② 校準水平</div>
-  <div class="phase phase-3" id="ph3">③ 揮棒分析</div>
+<div class="detect-row" id="detect-row">
+  <div class="detect-item" id="detect-ball"><div class="detect-dot"></div>⚾ 球已標記</div>
+  <div class="detect-item" id="detect-level"><div class="detect-dot"></div>📐 水平校準</div>
 </div>
 
-<div class="stats">
-  <div class="stat"><div class="stat-label">擊球初速</div><div class="stat-value" id="velo">—</div></div>
-  <div class="stat"><div class="stat-label">擊球仰角</div><div class="stat-value" id="angle">—</div></div>
-  <div class="stat"><div class="stat-label">預測距離</div><div class="stat-value" id="distance">—</div></div>
+<div class="level-btn-wrap">
+  <button class="level-skip-btn" onclick="skipLevel()">✅ 水平OK，跳過</button>
 </div>
 
-<div class="legend">
-  <div class="leg"><div class="dot" style="background:#3b82f6"></div>準備期</div>
-  <div class="leg"><div class="dot" style="background:#f59e0b"></div>加速期</div>
-  <div class="leg"><div class="dot" style="background:#ef4444"></div>擊球點</div>
+<!-- 數據卡片 -->
+<div class="data-row" id="data-row">
+  <div class="data-card">
+    <div class="data-card-title">擊球初速 / 仰角</div>
+    <canvas id="angleCanvas" class="mini" width="200" height="120"></canvas>
+  </div>
+  <div class="data-card">
+    <div class="data-card-title">預測落點</div>
+    <canvas id="fieldCanvas" class="mini" width="200" height="120"></canvas>
+  </div>
 </div>
 
-<div class="btns">
-  <button class="main" id="mainBtn" onclick="handleMain()">開始偵測球</button>
-  <button class="sub" onclick="resetAll()">重置</button>
+<div class="control-row">
+  <div class="lr-toggle">
+    <button class="lr-btn active" id="btn-right" onclick="setHandedness('right')">右打</button>
+    <button class="lr-btn" id="btn-left" onclick="setHandedness('left')">左打</button>
+  </div>
+  <div class="btns">
+    <button class="main" id="mainBtn" onclick="handleMain()" disabled>請標記球</button>
+    <button class="sub" onclick="resetAll()">重置</button>
+  </div>
 </div>
 
-<div class="list-title" id="list-title" style="display:none">📋 揮棒紀錄</div>
-<div class="swing-list" id="swing-list"></div>
+<div class="list-section">
+  <div class="list-title">📋 揮棒紀錄</div>
+  <div class="swing-list" id="swing-list"></div>
+</div>
 
 <!-- 回放彈窗 -->
 <div class="modal" id="modal">
   <div class="modal-box">
     <div class="modal-top">
-      <span class="modal-title" id="modal-title">第1次揮棒</span>
+      <span class="modal-title" id="modal-title">回放</span>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
-    <video class="modal-video" id="modal-video" controls playsinline></video>
-    <button class="modal-dl" id="modal-dl-btn">⬇ 下載影片</button>
+    <div class="modal-video-wrap">
+      <video class="modal-video" id="modal-video" controls playsinline></video>
+      <canvas class="modal-overlay" id="modal-overlay"></canvas>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-speed" id="speed-btn" onclick="toggleSpeed()">🐢 0.5x 慢速</button>
+      <button class="modal-dl" onclick="downloadCurrent()">⬇ 下載</button>
+    </div>
   </div>
 </div>
 
@@ -135,46 +175,302 @@ import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@m
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+const angleCanvas = document.getElementById('angleCanvas');
+const aCtx = angleCanvas.getContext('2d');
+const fieldCanvas = document.getElementById('fieldCanvas');
+const fCtx = fieldCanvas.getContext('2d');
+const modalVideo = document.getElementById('modal-video');
+const modalOverlay = document.getElementById('modal-overlay');
+const mCtx = modalOverlay.getContext('2d');
 const status = document.getElementById('status');
+const mainBtn = document.getElementById('mainBtn');
 
 let poseLandmarker = null;
-let phase = 1;
+let phase = 1; // 1=校準 2=揮棒
 let tracking = false;
 let animId = null;
-let ballPos = null;
-let ballConfidence = 0;
-let isLevel = false;
-let levelProgress = 0;
-let trail = [];
-let lastWrist = null;
-let maxSpeed = 0;
-let swingStart = null;
+let handedness = 'right';
+
+// 球標記
+let markedBall = null;
+let ballOK = false;
+
+// 水平
+let levelOK = false;
+let levelConfidence = 0;
+let feetPositions = [];
+
+// 揮棒
+let trail = [], lastWrist = null, maxSpeed = 0;
 let swingDetected = false;
-let swingCount = 0;
-let isRecording = false;
-let mediaRecorder = null;
-let recordedChunks = [];
-let swingRecords = [];
-let countdownInterval = null;
 let finalVelo = 0, finalAngle = 0, finalDist = 0;
 
-async function init() {
-  try {
-    const vision = await FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
-    );
-    poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
-      baseOptions: {
-        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
-        delegate: "GPU"
-      },
-      runningMode: "VIDEO",
-      numPoses: 1
-    });
-    status.textContent = '✅ 準備完成，點擊「開始偵測球」';
-  } catch(e) {
-    status.textContent = '⚠️ 載入失敗，請重新整理';
+// 球軌跡（回放用）
+let ballTrail = [];
+let lastBallPos = null;
+
+// 身體
+let headPositions = [], hipPositions = [], anklePositions = [];
+
+// 錄影
+let isRecording = false, mediaRecorder = null, recordedChunks = [];
+let countdownInterval = null;
+
+// 列表
+let swingRecords = [];
+let totalSlots = 5;
+let currentPlayIndex = -1;
+let isSlowMode = false;
+
+// 點擊標記球
+document.getElementById('container').addEventListener('click', function(e) {
+  if (phase !== 1 || isRecording) return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  markedBall = {
+    x: (e.clientX - rect.left) * scaleX,
+    y: (e.clientY - rect.top) * scaleY
+  };
+  ballOK = true;
+  document.getElementById('detect-ball').classList.add('ok');
+  document.getElementById('tap-hint').textContent = '✅ 球已標記，可重新點擊調整';
+  updateMainBtn();
+  status.textContent = '⚾ 球已標記！確認水平後點擊「開始揮棒」';
+});
+
+window.skipLevel = function() {
+  levelOK = true;
+  document.getElementById('detect-level').classList.add('ok');
+  updateMainBtn();
+  status.textContent = '📐 水平已確認！';
+}
+
+window.setHandedness = function(side) {
+  handedness = side;
+  document.getElementById('btn-right').classList.toggle('active', side === 'right');
+  document.getElementById('btn-left').classList.toggle('active', side === 'left');
+}
+
+function updateMainBtn() {
+  if (ballOK && levelOK) {
+    mainBtn.disabled = false;
+    mainBtn.textContent = '✅ 開始揮棒';
+    mainBtn.className = 'main ready';
+    document.getElementById('step-badge').textContent = '準備完成';
   }
+}
+
+// 畫仰角卡片
+function drawAngleCard(angle, velo) {
+  const w = angleCanvas.width, h = angleCanvas.height;
+  aCtx.clearRect(0, 0, w, h);
+  aCtx.fillStyle = '#111';
+  aCtx.fillRect(0, 0, w, h);
+
+  const cx = w * 0.3, cy = h * 0.85;
+  const r = h * 0.7;
+
+  // 弧形背景
+  aCtx.beginPath();
+  aCtx.arc(cx, cy, r, Math.PI, 0);
+  aCtx.strokeStyle = '#2a2a2a';
+  aCtx.lineWidth = 2;
+  aCtx.stroke();
+
+  // 刻度
+  for (let deg = 0; deg <= 180; deg += 30) {
+    const rad = (180 - deg) * Math.PI / 180;
+    const x1 = cx + (r-8) * Math.cos(rad);
+    const y1 = cy - (r-8) * Math.sin(rad);
+    const x2 = cx + r * Math.cos(rad);
+    const y2 = cy - r * Math.sin(rad);
+    aCtx.beginPath();
+    aCtx.moveTo(x1, y1); aCtx.lineTo(x2, y2);
+    aCtx.strokeStyle = '#333'; aCtx.lineWidth = 1; aCtx.stroke();
+  }
+
+  // 仰角箭頭
+  const clampedAngle = Math.max(-10, Math.min(90, angle));
+  const arrowRad = (180 - clampedAngle) * Math.PI / 180;
+  const ax = cx + (r-15) * Math.cos(arrowRad);
+  const ay = cy - (r-15) * Math.sin(arrowRad);
+
+  aCtx.beginPath();
+  aCtx.moveTo(cx, cy);
+  aCtx.lineTo(ax, ay);
+  aCtx.strokeStyle = '#f59e0b';
+  aCtx.lineWidth = 3;
+  aCtx.lineCap = 'round';
+  aCtx.stroke();
+
+  // 箭頭頭
+  aCtx.beginPath();
+  aCtx.arc(ax, ay, 5, 0, Math.PI*2);
+  aCtx.fillStyle = '#f59e0b';
+  aCtx.fill();
+
+  // 初速（右上）
+  aCtx.fillStyle = '#fff';
+  aCtx.font = 'bold 18px sans-serif';
+  aCtx.textAlign = 'right';
+  aCtx.fillText(velo, w - 8, 22);
+  aCtx.font = '10px sans-serif';
+  aCtx.fillStyle = '#666';
+  aCtx.fillText('km/h', w - 8, 34);
+
+  // 仰角（右下）
+  aCtx.fillStyle = '#f59e0b';
+  aCtx.font = 'bold 16px sans-serif';
+  aCtx.fillText(angle + '°', w - 8, h - 20);
+  aCtx.font = '10px sans-serif';
+  aCtx.fillStyle = '#666';
+  aCtx.fillText('仰角', w - 8, h - 8);
+}
+
+// 畫球場卡片
+function drawFieldCard(dist, angle) {
+  const w = fieldCanvas.width, h = fieldCanvas.height;
+  fCtx.clearRect(0, 0, w, h);
+  fCtx.fillStyle = '#111';
+  fCtx.fillRect(0, 0, w, h);
+
+  const bx = w * 0.18, by = h * 0.88;
+
+  // 球場草地扇形
+  fCtx.beginPath();
+  fCtx.moveTo(bx, by);
+  fCtx.arc(bx, by, w * 0.85, -Math.PI*0.75, -Math.PI*0.25);
+  fCtx.closePath();
+  fCtx.fillStyle = '#0d2010';
+  fCtx.fill();
+  fCtx.strokeStyle = '#1a3a1a';
+  fCtx.lineWidth = 1;
+  fCtx.stroke();
+
+  // 全壘打牆（約100m）
+  const wallDist = Math.min(w*0.78, w*0.78);
+  fCtx.beginPath();
+  fCtx.arc(bx, by, wallDist, -Math.PI*0.75, -Math.PI*0.25);
+  fCtx.strokeStyle = '#ef4444';
+  fCtx.lineWidth = 2;
+  fCtx.setLineDash([4,3]);
+  fCtx.stroke();
+  fCtx.setLineDash([]);
+
+  // 距離標籤
+  fCtx.fillStyle = '#ef4444';
+  fCtx.font = '9px sans-serif';
+  fCtx.textAlign = 'left';
+  fCtx.fillText('100m', bx + wallDist * 0.68, by - wallDist * 0.68 - 4);
+
+  // 落點計算
+  const maxDist = 150;
+  const ratio = Math.min(dist / maxDist, 1);
+  const clampedAngle = Math.max(0, Math.min(90, angle));
+  const dirRad = -Math.PI * 0.5; // 正中間
+  const px = bx + ratio * wallDist * Math.cos(dirRad);
+  const py = by + ratio * wallDist * Math.sin(dirRad);
+
+  // 落點弧線
+  fCtx.beginPath();
+  fCtx.moveTo(bx, by);
+  const midX = bx + ratio * wallDist * 0.5 * Math.cos(dirRad);
+  const midY = by + ratio * wallDist * 0.5 * Math.sin(dirRad) - ratio * 30;
+  fCtx.quadraticCurveTo(midX, midY, px, py);
+  fCtx.strokeStyle = '#f59e0b';
+  fCtx.lineWidth = 2;
+  fCtx.stroke();
+
+  // 落點標記
+  fCtx.beginPath();
+  fCtx.arc(px, py, 5, 0, Math.PI*2);
+  fCtx.fillStyle = dist > 100 ? '#ef4444' : '#f59e0b';
+  fCtx.fill();
+
+  // 距離數字
+  fCtx.fillStyle = '#fff';
+  fCtx.font = 'bold 14px sans-serif';
+  fCtx.textAlign = 'right';
+  fCtx.fillText(dist > 0 ? dist + 'm' : '—', w - 6, h - 6);
+
+  // HR 標記
+  if (dist > 100) {
+    fCtx.fillStyle = '#ef4444';
+    fCtx.font = 'bold 11px sans-serif';
+    fCtx.textAlign = 'right';
+    fCtx.fillText('HR!', w - 6, h - 20);
+  }
+}
+
+// 初始化卡片
+function initCards() {
+  drawAngleCard(0, 0);
+  drawFieldCard(0, 0);
+}
+
+// 列表
+function initList() {
+  const list = document.getElementById('swing-list');
+  list.innerHTML = '';
+  totalSlots = 5;
+  for (let i = 0; i < totalSlots; i++) list.appendChild(makeEmptySlot());
+}
+
+function makeEmptySlot() {
+  const item = document.createElement('div');
+  item.className = 'swing-item empty';
+  item.innerHTML = `
+    <div class="swing-header">
+      <div class="swing-num">—</div>
+      <div class="swing-stats-row">
+        <div class="swing-stat"><span class="swing-stat-label">初速</span><span class="swing-stat-value">—</span></div>
+        <div class="swing-stat"><span class="swing-stat-label">仰角</span><span class="swing-stat-value">—</span></div>
+        <div class="swing-stat"><span class="swing-stat-label">距離</span><span class="swing-stat-value">—</span></div>
+      </div>
+    </div>
+    <div class="swing-actions">
+      <button class="play-btn" disabled>▶ 回放</button>
+      <button class="dl-btn" disabled>⬇ 下載</button>
+    </div>`;
+  return item;
+}
+
+function fillSlot(record) {
+  const list = document.getElementById('swing-list');
+  const slots = list.querySelectorAll('.swing-item');
+  const idx = record.num - 1;
+  if (slots[idx]) {
+    slots[idx].className = 'swing-item filled';
+    slots[idx].innerHTML = `
+      <div class="swing-header">
+        <div class="swing-num">${record.num}</div>
+        <div class="swing-stats-row">
+          <div class="swing-stat"><span class="swing-stat-label">初速</span><span class="swing-stat-value">${record.velo}<span style="font-size:10px;color:#555"> km/h</span></span></div>
+          <div class="swing-stat"><span class="swing-stat-label">仰角</span><span class="swing-stat-value">${record.angle}<span style="font-size:10px;color:#555">°</span></span></div>
+          <div class="swing-stat"><span class="swing-stat-label">距離</span><span class="swing-stat-value">${record.dist > 0 ? record.dist : '—'}<span style="font-size:10px;color:#555">${record.dist > 0 ? 'm' : ''}</span></span></div>
+        </div>
+        <button class="swing-expand-btn" onclick="toggleDetail(${idx})">▾</button>
+      </div>
+      <div class="swing-actions">
+        <button class="play-btn" onclick="playRecord(${idx})">▶ 回放</button>
+        <button class="dl-btn" onclick="downloadRecord(${idx})">⬇ 下載</button>
+      </div>
+      <div class="swing-detail" id="detail-${idx}">
+        <div class="detail-grid">
+          <div class="detail-card"><div class="detail-label">頭部移動</div><div class="detail-value">${record.headMove}<span class="detail-unit"> px</span></div></div>
+          <div class="detail-card"><div class="detail-label">重心位移</div><div class="detail-value">${record.hipMove}<span class="detail-unit"> px</span></div></div>
+          <div class="detail-card"><div class="detail-label">跨步幅度</div><div class="detail-value">${record.ankleSpan}<span class="detail-unit"> px</span></div></div>
+        </div>
+      </div>`;
+  }
+  list.appendChild(makeEmptySlot());
+  totalSlots++;
+}
+
+window.toggleDetail = function(idx) {
+  const d = document.getElementById(`detail-${idx}`);
+  if (d) d.classList.toggle('show');
 }
 
 async function startCamera() {
@@ -191,18 +487,41 @@ async function startCamera() {
   }
 }
 
-// 開始錄影
+async function init() {
+  try {
+    const vision = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+    );
+    poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+        delegate: "GPU"
+      },
+      runningMode: "VIDEO",
+      numPoses: 1
+    });
+    tracking = true;
+    status.textContent = '👆 點擊畫面標記球的位置';
+    loop();
+  } catch(e) {
+    status.textContent = '⚠️ 載入失敗，請重新整理';
+  }
+}
+
 function startRecording() {
   try {
-    const stream = video.srcObject;
     recordedChunks = [];
-    mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+    ballTrail = [];
+    lastBallPos = markedBall ? { ...markedBall } : null;
+    mediaRecorder = new MediaRecorder(video.srcObject, { mimeType: 'video/webm' });
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
     mediaRecorder.start();
     isRecording = true;
     document.getElementById('rec-indicator').style.display = 'flex';
+    document.getElementById('detect-row').style.display = 'none';
+    document.getElementById('tap-hint').style.display = 'none';
 
-    let secs = 6;
+    let secs = 3;
     const cd = document.getElementById('countdown');
     cd.style.display = 'block';
     cd.textContent = `⏱ ${secs}s`;
@@ -222,134 +541,168 @@ function stopRecording() {
   document.getElementById('rec-indicator').style.display = 'none';
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
     mediaRecorder.stop();
-    mediaRecorder.onstop = () => saveRecord();
+    mediaRecorder.onstop = saveRecord;
   }
   isRecording = false;
+}
+
+function calcBodyMetrics() {
+  let headMove = 0, hipMove = 0, ankleSpan = 0;
+  if (headPositions.length > 1) {
+    const xs = headPositions.map(p => p.x);
+    headMove = Math.round(Math.max(...xs) - Math.min(...xs));
+  }
+  if (hipPositions.length > 1) {
+    const xs = hipPositions.map(p => p.x);
+    hipMove = Math.round(Math.max(...xs) - Math.min(...xs));
+  }
+  if (anklePositions.length > 1) {
+    const spans = anklePositions.map(p => Math.abs(p.lx - p.rx));
+    ankleSpan = Math.round(Math.max(...spans));
+  }
+  return { headMove, hipMove, ankleSpan };
 }
 
 function saveRecord() {
   const blob = new Blob(recordedChunks, { type: 'video/webm' });
   const url = URL.createObjectURL(blob);
-  swingCount++;
+  const num = swingRecords.length + 1;
+  const body = calcBodyMetrics();
   const record = {
-    num: swingCount,
-    velo: finalVelo,
-    angle: finalAngle,
-    dist: finalDist,
-    url: url,
-    blob: blob
+    num, velo: finalVelo, angle: finalAngle, dist: finalDist,
+    ...body, url, blob,
+    ballTrail: [...ballTrail]
   };
   swingRecords.push(record);
-  addRecordToList(record);
+  fillSlot(record);
 
-  // 重置第三階段，等下次揮棒
-  trail = [];
-  lastWrist = null;
-  maxSpeed = 0;
-  swingDetected = false;
+  trail = []; lastWrist = null; maxSpeed = 0; swingDetected = false;
   finalVelo = 0; finalAngle = 0; finalDist = 0;
-  status.textContent = `✅ 第${swingCount}次完成！再次揮棒繼續紀錄`;
-  document.getElementById('mainBtn').textContent = '再次揮棒';
-  document.getElementById('mainBtn').disabled = false;
+  headPositions = []; hipPositions = []; anklePositions = [];
+  ballTrail = []; lastBallPos = null;
+  ballOK = false; levelOK = false; levelConfidence = 0;
+  markedBall = null;
+  feetPositions = [];
+
+  document.getElementById('detect-row').style.display = 'flex';
+  document.getElementById('tap-hint').style.display = 'block';
+  document.getElementById('tap-hint').textContent = '👆 點擊畫面標記球的位置';
+  document.getElementById('detect-ball').classList.remove('ok');
+  document.getElementById('detect-level').classList.remove('ok');
+  document.getElementById('step-badge').textContent = '準備中';
+  mainBtn.textContent = '請標記球';
+  mainBtn.disabled = true;
+  mainBtn.className = 'main';
+  phase = 1;
+  status.textContent = `✅ 第${num}次完成！重新標記球後繼續`;
 }
 
-function addRecordToList(record) {
-  document.getElementById('list-title').style.display = 'block';
-  const list = document.getElementById('swing-list');
-  const item = document.createElement('div');
-  item.className = 'swing-item';
-  item.innerHTML = `
-    <div class="swing-item-top">
-      <div class="swing-num">${record.num}</div>
-      <div class="swing-stats">
-        <div class="swing-stat"><span class="swing-stat-label">初速</span><span class="swing-stat-value">${record.velo} px/f</span></div>
-        <div class="swing-stat"><span class="swing-stat-label">仰角</span><span class="swing-stat-value">${record.angle}°</span></div>
-        <div class="swing-stat"><span class="swing-stat-label">距離</span><span class="swing-stat-value">${record.dist > 0 ? record.dist + 'm' : '—'}</span></div>
-      </div>
-    </div>
-    <div class="swing-item-btns">
-      <button class="play-btn" onclick="playRecord(${record.num - 1})">▶ 回放</button>
-      <button class="dl-btn" onclick="downloadRecord(${record.num - 1})">⬇ 下載</button>
-    </div>
-  `;
-  list.insertBefore(item, list.firstChild);
+window.handleMain = function() {
+  if (phase === 1 && ballOK && levelOK) {
+    phase = 2;
+    trail = []; lastWrist = null; maxSpeed = 0; swingDetected = false;
+    headPositions = []; hipPositions = []; anklePositions = [];
+    document.getElementById('step-badge').textContent = '揮棒中';
+    mainBtn.textContent = '錄影中...';
+    mainBtn.disabled = true;
+    mainBtn.className = 'main recording';
+    status.textContent = '🔴 自動錄影3秒，請揮棒！';
+    startRecording();
+  }
 }
 
+window.resetAll = function() {
+  phase = 1; tracking = false;
+  ballOK = false; levelOK = false; levelConfidence = 0;
+  markedBall = null; feetPositions = [];
+  trail = []; lastWrist = null; maxSpeed = 0; swingDetected = false;
+  headPositions = []; hipPositions = []; anklePositions = [];
+  ballTrail = []; lastBallPos = null;
+  if (isRecording) stopRecording();
+  cancelAnimationFrame(animId);
+  document.getElementById('detect-row').style.display = 'flex';
+  document.getElementById('tap-hint').style.display = 'block';
+  document.getElementById('tap-hint').textContent = '👆 點擊畫面標記球的位置';
+  document.getElementById('detect-ball').classList.remove('ok');
+  document.getElementById('detect-level').classList.remove('ok');
+  document.getElementById('step-badge').textContent = '準備中';
+  mainBtn.textContent = '請標記球';
+  mainBtn.disabled = true;
+  mainBtn.className = 'main';
+  swingRecords = []; totalSlots = 5;
+  initList(); initCards();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  status.textContent = '✅ 已重置';
+  tracking = true;
+  loop();
+}
+
+// 回放
 window.playRecord = function(index) {
   const record = swingRecords[index];
+  currentPlayIndex = index;
+  isSlowMode = false;
   document.getElementById('modal-title').textContent = `第${record.num}次揮棒`;
-  const mv = document.getElementById('modal-video');
-  mv.src = record.url;
-  mv.play();
-  document.getElementById('modal-dl-btn').onclick = () => downloadRecord(index);
+  modalVideo.src = record.url;
+  modalVideo.playbackRate = 1.0;
+  document.getElementById('speed-btn').textContent = '🐢 切換0.5x';
+
+  modalVideo.onloadedmetadata = () => {
+    modalOverlay.width = modalVideo.videoWidth || 640;
+    modalOverlay.height = modalVideo.videoHeight || 480;
+    drawBallTrailOnOverlay(record.ballTrail, modalOverlay.width, modalOverlay.height);
+  };
+  modalVideo.play();
   document.getElementById('modal').classList.add('show');
 }
 
-window.downloadRecord = function(index) {
-  const record = swingRecords[index];
+function drawBallTrailOnOverlay(trail, w, h) {
+  mCtx.clearRect(0, 0, w, h);
+  if (!trail || trail.length < 2) return;
+  for (let i = 1; i < trail.length; i++) {
+    const t = trail[i], p = trail[i-1];
+    const age = i / trail.length;
+    mCtx.beginPath();
+    mCtx.moveTo(p.x * w / 640, p.y * h / 480);
+    mCtx.lineTo(t.x * w / 640, t.y * h / 480);
+    mCtx.strokeStyle = `rgba(251,191,36,${age * 0.9})`;
+    mCtx.lineWidth = 3;
+    mCtx.stroke();
+  }
+  // 末端圓點
+  const last = trail[trail.length-1];
+  mCtx.beginPath();
+  mCtx.arc(last.x * w / 640, last.y * h / 480, 6, 0, Math.PI*2);
+  mCtx.fillStyle = '#f59e0b';
+  mCtx.fill();
+}
+
+window.toggleSpeed = function() {
+  isSlowMode = !isSlowMode;
+  modalVideo.playbackRate = isSlowMode ? 0.5 : 1.0;
+  document.getElementById('speed-btn').textContent = isSlowMode ? '▶ 正常速度' : '🐢 切換0.5x';
+}
+
+window.downloadCurrent = function() {
+  if (currentPlayIndex < 0) return;
+  const record = swingRecords[currentPlayIndex];
   const a = document.createElement('a');
   a.href = record.url;
   a.download = `揮棒第${record.num}次.webm`;
   a.click();
 }
 
+window.downloadRecord = function(index) {
+  const a = document.createElement('a');
+  a.href = swingRecords[index].url;
+  a.download = `揮棒第${swingRecords[index].num}次.webm`;
+  a.click();
+}
+
 window.closeModal = function() {
-  const mv = document.getElementById('modal-video');
-  mv.pause();
+  modalVideo.pause();
   document.getElementById('modal').classList.remove('show');
-}
-
-window.handleMain = function() {
-  if (phase === 1) {
-    tracking = true;
-    document.getElementById('mainBtn').textContent = '偵測中...';
-    document.getElementById('mainBtn').disabled = true;
-    status.textContent = '🎯 請將球放置於畫面中央白圈內';
-    loop();
-  } else if (phase === 2) {
-    status.textContent = '📐 請舉起球棒，讓鏡頭看到雙手';
-  } else if (phase === 3) {
-    trail = [];
-    lastWrist = null;
-    maxSpeed = 0;
-    swingDetected = false;
-    status.textContent = '🔴 準備好後揮棒！自動錄影6秒';
-    document.getElementById('mainBtn').disabled = true;
-    document.getElementById('mainBtn').textContent = '錄影中...';
-    startRecording();
-  }
-}
-
-window.resetAll = function() {
-  phase = 1;
-  tracking = false;
-  ballPos = null;
-  ballConfidence = 0;
-  isLevel = false;
-  levelProgress = 0;
-  trail = [];
-  lastWrist = null;
-  maxSpeed = 0;
-  swingDetected = false;
-  if (isRecording) stopRecording();
-  cancelAnimationFrame(animId);
-  updatePhaseUI();
-  document.getElementById('mainBtn').textContent = '開始偵測球';
-  document.getElementById('mainBtn').classList.remove('recording');
-  document.getElementById('mainBtn').disabled = false;
-  document.getElementById('velo').textContent = '—';
-  document.getElementById('angle').textContent = '—';
-  document.getElementById('distance').textContent = '—';
-  document.getElementById('step-badge').textContent = '步驟 1／3';
-  status.textContent = '✅ 已重置，點擊「開始偵測球」';
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-function updatePhaseUI() {
-  ['ph1','ph2','ph3'].forEach((id, i) => {
-    document.getElementById(id).classList.toggle('active', i + 1 === phase);
-  });
-  document.getElementById('step-badge').textContent = `步驟 ${phase}／3`;
+  currentPlayIndex = -1;
 }
 
 function getColor(speed) {
@@ -358,147 +711,136 @@ function getColor(speed) {
   return '#ef4444';
 }
 
-function detectBall(imageData, cw, ch) {
-  const cx = cw / 2, cy = ch / 2;
-  const searchR = Math.min(cw, ch) * 0.25;
+// 追蹤球位移（揮棒後）
+function trackBallMovement(imageData, cw, ch) {
+  if (!lastBallPos) return;
+  const sx = Math.max(0, lastBallPos.x - 40);
+  const sy = Math.max(0, lastBallPos.y - 40);
+  const ex = Math.min(cw, lastBallPos.x + 40);
+  const ey = Math.min(ch, lastBallPos.y + 40);
   const data = imageData.data;
-  let brightCount = 0, bx = 0, by = 0;
-  for (let y = cy - searchR; y < cy + searchR; y += 4) {
-    for (let x = cx - searchR; x < cx + searchR; x += 4) {
-      const i = (Math.floor(y) * cw + Math.floor(x)) * 4;
-      const brightness = (data[i] + data[i+1] + data[i+2]) / 3;
-      const dist = Math.sqrt((x-cx)**2 + (y-cy)**2);
-      if (brightness > 160 && dist < searchR) { brightCount++; bx += x; by += y; }
+  let count = 0, bx = 0, by = 0;
+
+  for (let y = sy; y < ey; y += 2) {
+    for (let x = sx; x < ex; x += 2) {
+      const i = (Math.floor(y)*cw + Math.floor(x))*4;
+      const r = data[i], g = data[i+1], b = data[i+2];
+      const isWhite = r > 185 && g > 185 && b > 185
+                   && Math.max(r,g,b) - Math.min(r,g,b) < 50;
+      if (isWhite) { count++; bx+=x; by+=y; }
     }
   }
-  return brightCount > 10 ? { x: bx/brightCount, y: by/brightCount, found: true } : { x: cx, y: cy, found: false };
+
+  if (count > 5) {
+    const nx = bx/count, ny = by/count;
+    ballTrail.push({ x: nx, y: ny });
+    lastBallPos = { x: nx, y: ny };
+  }
 }
 
 function loop() {
   if (!tracking) return;
   if (video.readyState < 2) { animId = requestAnimationFrame(loop); return; }
-
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const cw = canvas.width, ch = canvas.height;
 
-  const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = cw; tempCanvas.height = ch;
-  const tempCtx = tempCanvas.getContext('2d');
-  tempCtx.drawImage(video, 0, 0, cw, ch);
-  const imageData = tempCtx.getImageData(0, 0, cw, ch);
+  const now = performance.now();
+  const results = poseLandmarker ? poseLandmarker.detectForVideo(video, now) : null;
 
   if (phase === 1) {
-    const ball = detectBall(imageData, cw, ch);
-    ctx.beginPath();
-    ctx.arc(cw/2, ch/2, Math.min(cw,ch)*0.25, 0, Math.PI*2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = 1; ctx.setLineDash([6,4]); ctx.stroke(); ctx.setLineDash([]);
-
-    const targetX = ball.found ? ball.x : cw/2;
-    const targetY = ball.found ? ball.y : ch/2;
-    if (!ballPos) ballPos = { x: targetX, y: targetY };
-    ballPos.x += (targetX - ballPos.x) * 0.15;
-    ballPos.y += (targetY - ballPos.y) * 0.15;
-
-    ctx.beginPath(); ctx.arc(ballPos.x, ballPos.y, 36, 0, Math.PI*2);
-    ctx.strokeStyle = ball.found ? '#3b82f6' : 'rgba(255,255,255,0.3)';
-    ctx.lineWidth = 2; ctx.stroke();
-    ctx.beginPath(); ctx.arc(ballPos.x, ballPos.y, 20, 0, Math.PI*2);
-    ctx.strokeStyle = ball.found ? '#60a5fa' : 'rgba(255,255,255,0.2)';
-    ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.strokeStyle = ball.found ? '#3b82f6' : 'rgba(255,255,255,0.3)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(ballPos.x-28, ballPos.y); ctx.lineTo(ballPos.x+28, ballPos.y); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(ballPos.x, ballPos.y-28); ctx.lineTo(ballPos.x, ballPos.y+28); ctx.stroke();
-
-    if (ball.found) {
-      ballConfidence = Math.min(ballConfidence + 1, 30);
-      status.textContent = `🎯 偵測到球！確認中 ${Math.round(ballConfidence/30*100)}%`;
-    } else {
-      ballConfidence = Math.max(ballConfidence - 1, 0);
-      status.textContent = '🎯 請將球放置於畫面中央白圈內';
+    // 畫標記球的位置
+    if (markedBall) {
+      ctx.beginPath();
+      ctx.arc(markedBall.x, markedBall.y, 22, 0, Math.PI*2);
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 3; ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(markedBall.x, markedBall.y, 6, 0, Math.PI*2);
+      ctx.fillStyle = '#ef4444'; ctx.fill();
     }
 
-    if (ballConfidence >= 30) {
-      phase = 2; updatePhaseUI();
-      document.getElementById('mainBtn').textContent = '確認水平';
-      document.getElementById('mainBtn').disabled = false;
-      status.textContent = '✅ 球已偵測！步驟2：舉起球棒校準水平';
-    }
-
-  } else if (phase === 2) {
-    const now = performance.now();
-    const results = poseLandmarker ? poseLandmarker.detectForVideo(video, now) : null;
-
-    ctx.beginPath(); ctx.moveTo(cw*0.1, ch*0.5); ctx.lineTo(cw*0.9, ch*0.5);
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1;
-    ctx.setLineDash([8,6]); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '11px sans-serif';
-    ctx.textAlign = 'center'; ctx.fillText('水平基準線', cw/2, ch*0.5 - 8);
-
+    // 水平校準（抓兩腳）
     if (results && results.landmarks && results.landmarks.length > 0) {
       const lm = results.landmarks[0];
-      const wristR = lm[16], wristL = lm[15];
-      if (wristR && wristL) {
-        const rx = wristR.x*cw, ry = wristR.y*ch;
-        const lx = wristL.x*cw, ly = wristL.y*ch;
-        const angleDiff = Math.abs(ry - ly) / cw;
-        isLevel = angleDiff < 0.05;
+      const ankleL = lm[27], ankleR = lm[28];
+      if (ankleL && ankleR) {
+        const lx = ankleL.x*cw, ly = ankleL.y*ch;
+        const rx = ankleR.x*cw, ry = ankleR.y*ch;
+        const diff = Math.abs(ly - ry) / ch;
+        const feetLevel = diff < 0.04;
 
         ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(rx, ry);
-        ctx.strokeStyle = isLevel ? '#22c55e' : '#f59e0b';
+        ctx.strokeStyle = feetLevel ? '#22c55e' : '#f59e0b';
         ctx.lineWidth = 3; ctx.stroke();
-        ctx.beginPath(); ctx.arc(rx, ry, 8, 0, Math.PI*2); ctx.fillStyle = isLevel ? '#22c55e' : '#f59e0b'; ctx.fill();
-        ctx.beginPath(); ctx.arc(lx, ly, 8, 0, Math.PI*2); ctx.fill();
+        [{ x: lx, y: ly }, { x: rx, y: ry }].forEach(p => {
+          ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI*2);
+          ctx.fillStyle = feetLevel ? '#22c55e' : '#f59e0b'; ctx.fill();
+        });
 
-        if (isLevel) {
-          levelProgress = Math.min(levelProgress + 1, 40);
-          status.textContent = `✅ 水平確認中 ${Math.round(levelProgress/40*100)}%`;
-        } else {
-          levelProgress = Math.max(levelProgress - 1, 0);
-          status.textContent = `📐 調整球棒水平，目前偏差 ${(angleDiff*100).toFixed(1)}%`;
-        }
+        if (feetLevel) levelConfidence = Math.min(levelConfidence+1, 180);
+        else levelConfidence = Math.max(levelConfidence-2, 0);
 
-        if (levelProgress >= 40) {
-          phase = 3; updatePhaseUI();
-          document.getElementById('mainBtn').textContent = '開始揮棒';
-          document.getElementById('mainBtn').disabled = false;
-          status.textContent = '✅ 水平校準完成！點擊「開始揮棒」自動錄影6秒';
+        if (!levelOK && levelConfidence >= 180) {
+          levelOK = true;
+          document.getElementById('detect-level').classList.add('ok');
+          updateMainBtn();
+          status.textContent = '📐 水平確認！';
         }
-      } else {
-        status.textContent = '📐 請舉起球棒，讓鏡頭看到雙手';
       }
     }
 
-  } else if (phase === 3) {
-    const now = performance.now();
-    const results = poseLandmarker ? poseLandmarker.detectForVideo(video, now) : null;
+  } else if (phase === 2) {
+    // 取畫面追蹤球
+    const tmp = document.createElement('canvas');
+    tmp.width = cw; tmp.height = ch;
+    const tCtx = tmp.getContext('2d');
+    tCtx.drawImage(video, 0, 0, cw, ch);
+    const imageData = tCtx.getImageData(0, 0, cw, ch);
+    trackBallMovement(imageData, cw, ch);
 
+    // 畫球軌跡
+    if (ballTrail.length > 1) {
+      for (let i = 1; i < ballTrail.length; i++) {
+        const t = ballTrail[i], p = ballTrail[i-1];
+        const age = i / ballTrail.length;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y); ctx.lineTo(t.x, t.y);
+        ctx.strokeStyle = `rgba(251,191,36,${age*0.9})`;
+        ctx.lineWidth = 3; ctx.stroke();
+      }
+    }
+
+    // 揮棒偵測
     if (results && results.landmarks && results.landmarks.length > 0) {
       const lm = results.landmarks[0];
-      const wrist = lm[16];
-      const elbow = lm[14];
+      const wristIdx = handedness === 'right' ? 16 : 15;
+      const elbowIdx = handedness === 'right' ? 14 : 13;
+      const wrist = lm[wristIdx], elbow = lm[elbowIdx];
+      const nose = lm[0], hipL = lm[23], hipR = lm[24];
+      const ankleL = lm[27], ankleR = lm[28];
+
+      if (nose) headPositions.push({ x: nose.x*cw });
+      if (hipL && hipR) hipPositions.push({ x: ((hipL.x+hipR.x)/2)*cw });
+      if (ankleL && ankleR) anklePositions.push({ lx: ankleL.x*cw, rx: ankleR.x*cw });
 
       if (wrist) {
-        const wx = wrist.x * cw, wy = wrist.y * ch;
+        const wx = wrist.x*cw, wy = wrist.y*ch;
         let speed = 0;
         if (lastWrist) {
-          const dx = wx - lastWrist.x, dy = wy - lastWrist.y;
-          speed = Math.sqrt(dx*dx + dy*dy);
+          const dx = wx-lastWrist.x, dy = wy-lastWrist.y;
+          speed = Math.sqrt(dx*dx+dy*dy);
           if (speed > maxSpeed) maxSpeed = speed;
         }
-
         trail.push({ x: wx, y: wy, speed });
         if (trail.length > 80) trail.shift();
         lastWrist = { x: wx, y: wy };
 
         for (let i = 1; i < trail.length; i++) {
-          const t = trail[i], prev = trail[i-1];
-          const age = i / trail.length;
-          ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(t.x, t.y);
+          const t = trail[i], p = trail[i-1];
+          ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(t.x, t.y);
           ctx.strokeStyle = getColor(t.speed);
           ctx.lineWidth = t.speed > 20 ? 5 : 3;
-          ctx.globalAlpha = age * 0.85; ctx.stroke(); ctx.globalAlpha = 1;
+          ctx.globalAlpha = (i/trail.length)*0.85; ctx.stroke(); ctx.globalAlpha = 1;
         }
 
         ctx.beginPath(); ctx.arc(wx, wy, 7, 0, Math.PI*2);
@@ -514,21 +856,17 @@ function loop() {
         let launchAngle = 0;
         if (elbow) {
           const ex = elbow.x*cw, ey = elbow.y*ch;
-          launchAngle = Math.round(Math.atan2(ey - wy, wx - ex) * 180 / Math.PI);
+          launchAngle = Math.round(Math.atan2(ey-wy, wx-ex)*180/Math.PI);
         }
 
-        const v0 = maxSpeed * 3.5;
-        const rad = Math.abs(launchAngle) * Math.PI / 180;
-        const dist = Math.round((v0 * v0 * Math.sin(2 * rad)) / 9.8);
+        const kmh = Math.round(maxSpeed * 60 * 0.005 * 3.6);
+        const rad = Math.abs(launchAngle)*Math.PI/180;
+        const v0ms = maxSpeed * 60 * 0.005;
+        const dist = Math.round((v0ms*v0ms*Math.sin(2*rad))/9.8);
 
-        finalVelo = Math.round(maxSpeed * 4);
-        finalAngle = launchAngle;
-        finalDist = dist;
-
-        document.getElementById('velo').textContent = finalVelo + ' px/f';
-        document.getElementById('angle').textContent = finalAngle + '°';
-        document.getElementById('distance').textContent = (finalDist > 0 ? finalDist + ' m' : '—');
-
+        finalVelo = kmh; finalAngle = launchAngle; finalDist = dist;
+        drawAngleCard(launchAngle, kmh);
+        drawFieldCard(dist, launchAngle);
         status.textContent = speed > 20 ? '🔴 擊球！' : speed > 8 ? '🟡 加速中' : '🔵 準備期';
       }
     }
@@ -537,6 +875,8 @@ function loop() {
   animId = requestAnimationFrame(loop);
 }
 
+initList();
+initCards();
 await startCamera();
 await init();
 </script>

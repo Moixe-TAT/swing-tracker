@@ -6,214 +6,112 @@
 <title>揮棒分析</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0a0a0a; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-  h1 { font-size: 18px; padding: 14px; letter-spacing: 2px; }
-  #container { position: relative; width: 100%; max-width: 480px; }
-  video { width: 100%; display: block; border-radius: 12px; }
-  canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 12px; }
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; max-width: 480px; padding: 14px; }
-  .stat { background: #1a1a1a; border-radius: 10px; padding: 12px; text-align: center; }
-  .stat-label { font-size: 11px; color: #888; margin-bottom: 4px; }
-  .stat-value { font-size: 22px; font-weight: 500; }
-  .legend { display: flex; gap: 16px; padding: 0 14px 10px; }
-  .leg { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #aaa; }
-  .dot { width: 20px; height: 4px; border-radius: 2px; }
-  .btns { display: flex; gap: 10px; padding: 0 14px 20px; width: 100%; max-width: 480px; }
-  button { flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 14px; cursor: pointer; font-weight: 500; }
-  #startBtn { background: #fff; color: #000; }
-  #resetBtn { background: #1a1a1a; color: #fff; }
-  #status { font-size: 12px; color: #f59e0b; padding: 6px 14px; min-height: 24px; }
+  body {
+    background: #0a0a0a;
+    color: #fff;
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+  }
+  .logo { font-size: 48px; margin-bottom: 12px; }
+  h1 { font-size: 22px; font-weight: 600; letter-spacing: 3px; margin-bottom: 6px; }
+  .sub { font-size: 13px; color: #666; margin-bottom: 48px; letter-spacing: 1px; }
+  .btn-group { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 320px; }
+  .btn {
+    padding: 18px;
+    border-radius: 14px;
+    border: none;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: transform 0.1s, opacity 0.1s;
+  }
+  .btn:active { transform: scale(0.97); opacity: 0.85; }
+  .btn-tee { background: #fff; color: #000; }
+  .btn-toss { background: #1a1a1a; color: #fff; border: 1px solid #333; }
+  .btn-live { background: #1a1a1a; color: #fff; border: 1px solid #333; }
+  .btn-icon { font-size: 24px; }
+  .btn-text { display: flex; flex-direction: column; align-items: flex-start; }
+  .btn-title { font-size: 16px; font-weight: 600; }
+  .btn-desc { font-size: 11px; color: #888; margin-top: 2px; }
+  .btn-tee .btn-desc { color: #555; }
+
+  /* 彈窗 */
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    align-items: center;
+    justify-content: center;
+    z-index: 99;
+  }
+  .modal.show { display: flex; }
+  .modal-box {
+    background: #1a1a1a;
+    border-radius: 16px;
+    padding: 28px 32px;
+    text-align: center;
+    border: 1px solid #333;
+  }
+  .modal-icon { font-size: 36px; margin-bottom: 10px; }
+  .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .modal-sub { font-size: 13px; color: #666; }
 </style>
 </head>
 <body>
 
-<h1>⚾ 揮棒軌跡分析</h1>
+<div class="logo">⚾</div>
+<h1>揮棒分析</h1>
+<p class="sub">選擇打擊模式</p>
 
-<div id="container">
-  <video id="video" autoplay playsinline muted></video>
-  <canvas id="canvas"></canvas>
+<div class="btn-group">
+  <button class="btn btn-tee" onclick="location.href='tee.html'">
+    <span class="btn-icon">🪝</span>
+    <div class="btn-text">
+      <span class="btn-title">T座模式</span>
+      <span class="btn-desc">球放置於T座，分析揮棒動作</span>
+    </div>
+  </button>
+
+  <button class="btn btn-toss" onclick="showModal()">
+    <span class="btn-icon">🤾</span>
+    <div class="btn-text">
+      <span class="btn-title">拋球模式</span>
+      <span class="btn-desc">自行拋球後揮棒</span>
+    </div>
+  </button>
+
+  <button class="btn btn-live" onclick="showModal()">
+    <span class="btn-icon">⚡</span>
+    <div class="btn-text">
+      <span class="btn-title">對決模式</span>
+      <span class="btn-desc">投手投球對決</span>
+    </div>
+  </button>
 </div>
 
-<div id="status">載入中，請稍候...</div>
-
-<div class="legend">
-  <div class="leg"><div class="dot" style="background:#3b82f6"></div>準備期</div>
-  <div class="leg"><div class="dot" style="background:#f59e0b"></div>加速期</div>
-  <div class="leg"><div class="dot" style="background:#ef4444"></div>擊球點</div>
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-icon">🚧</div>
+    <div class="modal-title">尚未開發</div>
+    <div class="modal-sub">敬請期待</div>
+  </div>
 </div>
 
-<div class="stats">
-  <div class="stat"><div class="stat-label">擊球初速</div><div class="stat-value" id="velo">—</div></div>
-  <div class="stat"><div class="stat-label">揮棒角度</div><div class="stat-value" id="angle">—</div></div>
-  <div class="stat"><div class="stat-label">揮棒時間</div><div class="stat-value" id="time">—</div></div>
-</div>
-
-<div class="btns">
-  <button id="startBtn" onclick="toggleTracking()">開始分析</button>
-  <button id="resetBtn" onclick="resetTrail()">清除軌跡</button>
-</div>
-
-<script type="module">
-import { PoseLandmarker, FilesetResolver, DrawingUtils } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
-
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const status = document.getElementById('status');
-
-let poseLandmarker = null;
-let tracking = false;
-let trail = [];
-let swingStart = null;
-let lastWrist = null;
-let maxSpeed = 0;
-let animId = null;
-
-// 初始化 MediaPipe
-async function init() {
-  const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
-  );
-  poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
-    baseOptions: {
-      modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
-      delegate: "GPU"
-    },
-    runningMode: "VIDEO",
-    numPoses: 1
-  });
-  status.textContent = '✅ 準備完成，點擊「開始分析」';
-}
-
-// 開啟鏡頭
-async function startCamera() {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: 'environment', width: 640, height: 480 }
-  });
-  video.srcObject = stream;
-  await new Promise(r => video.onloadedmetadata = r);
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-}
-
-function getColor(speed) {
-  if (speed < 8) return '#3b82f6';
-  if (speed < 18) return '#f59e0b';
-  return '#ef4444';
-}
-
-function toggleTracking() {
-  tracking = !tracking;
-  document.getElementById('startBtn').textContent = tracking ? '停止分析' : '開始分析';
-  document.getElementById('startBtn').style.background = tracking ? '#ef4444' : '#fff';
-  document.getElementById('startBtn').style.color = tracking ? '#fff' : '#000';
-  if (tracking) {
-    swingStart = Date.now();
-    status.textContent = '🔴 分析中…請揮棒';
-    loop();
-  } else {
-    cancelAnimationFrame(animId);
-    status.textContent = '⏸ 已暫停';
+<script>
+  function showModal() {
+    const modal = document.getElementById('modal');
+    modal.classList.add('show');
+    setTimeout(() => modal.classList.remove('show'), 1500);
   }
-}
-
-function resetTrail() {
-  trail = [];
-  maxSpeed = 0;
-  lastWrist = null;
-  document.getElementById('velo').textContent = '—';
-  document.getElementById('angle').textContent = '—';
-  document.getElementById('time').textContent = '—';
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-function loop() {
-  if (!tracking) return;
-  if (video.readyState < 2) { animId = requestAnimationFrame(loop); return; }
-
-  const now = performance.now();
-  const results = poseLandmarker.detectForVideo(video, now);
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  if (results.landmarks && results.landmarks.length > 0) {
-    const lm = results.landmarks[0];
-    // 右手腕 = 16，左手腕 = 15
-    const wrist = lm[16];
-    const elbow = lm[14];
-    const shoulder = lm[12];
-
-    if (wrist) {
-      const wx = wrist.x * canvas.width;
-      const wy = wrist.y * canvas.height;
-
-      let speed = 0;
-      if (lastWrist) {
-        const dx = wx - lastWrist.x;
-        const dy = wy - lastWrist.y;
-        speed = Math.sqrt(dx*dx + dy*dy);
-        if (speed > maxSpeed) maxSpeed = speed;
-      }
-
-      trail.push({ x: wx, y: wy, speed });
-      if (trail.length > 80) trail.shift();
-      lastWrist = { x: wx, y: wy };
-
-      // 畫軌跡
-      for (let i = 1; i < trail.length; i++) {
-        const t = trail[i];
-        const prev = trail[i-1];
-        const age = i / trail.length;
-        ctx.beginPath();
-        ctx.moveTo(prev.x, prev.y);
-        ctx.lineTo(t.x, t.y);
-        ctx.strokeStyle = getColor(t.speed);
-        ctx.lineWidth = t.speed > 18 ? 5 : 3;
-        ctx.globalAlpha = age * 0.9;
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-      }
-
-      // 畫手腕點
-      ctx.beginPath();
-      ctx.arc(wx, wy, 7, 0, Math.PI*2);
-      ctx.fillStyle = getColor(speed);
-      ctx.fill();
-
-      // 擊球瞬間圈圈
-      if (speed > 18) {
-        ctx.beginPath();
-        ctx.arc(wx, wy, 18, 0, Math.PI*2);
-        ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 2;
-        ctx.globalAlpha = 0.7;
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-      }
-
-      // 計算角度（手腕到手肘）
-      if (elbow) {
-        const ex = elbow.x * canvas.width;
-        const ey = elbow.y * canvas.height;
-        const deg = Math.round(Math.atan2(wy - ey, wx - ex) * 180 / Math.PI);
-        document.getElementById('angle').textContent = deg + '°';
-      }
-
-      // 更新數據
-      const elapsed = Date.now() - swingStart;
-      document.getElementById('velo').textContent = Math.round(maxSpeed * 4) + ' px/f';
-      document.getElementById('time').textContent = elapsed + 'ms';
-
-      status.textContent = speed > 18 ? '🔴 擊球點偵測！' : speed > 8 ? '🟡 加速中' : '🔵 準備期';
-    }
-  }
-
-  animId = requestAnimationFrame(loop);
-}
-
-// 啟動
-await startCamera();
-await init();
 </script>
 </body>
 </html>

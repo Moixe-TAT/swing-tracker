@@ -1,77 +1,99 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>T座模式</title>
-
-<style>
-body { margin:0; background:#0a0a0a; color:#fff; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; }
-video, canvas { width:100%; max-width:480px; }
-canvas { position:absolute; top:0; left:0; }
-#container { position:relative; width:100%; max-width:480px; }
-button { margin:4px; padding:10px; }
-.stat { margin:5px; }
-</style>
-</head>
-
-<body>
-
-<div id="container">
-  <video id="video" autoplay playsinline muted></video>
-  <canvas id="canvas"></canvas>
-</div>
-
-<div class="stat" id="status">載入中...</div>
-
-<div>
-  <button onclick="requestGyro()">啟用陀螺儀</button>
-  <button onclick="handleMain()">開始</button>
-  <button onclick="resetAll()">重置</button>
-</div>
-
-<div class="stat" id="velo">速度</div>
-<div class="stat" id="angle">角度</div>
-<div class="stat" id="distance">距離</div>
-
 <script type="module">
 import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
 
-const video = document.getElementById("video");
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-const status = document.getElementById("status");
+/* =========================
+   DOM
+========================= */
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const tmpCanvas = document.createElement('canvas');
+const tmpCtx = tmpCanvas.getContext('2d');
+const status = document.getElementById('status');
+const mainBtn = document.getElementById('mainBtn');
 
-let poseLandmarker;
+/* =========================
+   CORE STATE
+========================= */
+let poseLandmarker = null;
 let phase = 1;
+let tracking = false;
+let animId = null;
+let handedness = 'right';
 
-// ====== gyro ======
+/* =========================
+   GYRO
+========================= */
 let deviceTilt = 0;
+let levelOK = false;
+let levelConfidence = 0;
 let gyroEnabled = false;
 
-// ====== ball tracking ======
+function handleOrientation(e) {
+  deviceTilt = e.gamma || 0;
+}
+
+window.requestGyro = function () {
+  const enable = () => {
+    window.addEventListener('deviceorientation', handleOrientation);
+    gyroEnabled = true;
+    const btn = document.getElementById('gyro-btn');
+    btn.textContent = '✅ 水平感應已啟用';
+    btn.disabled = true;
+  };
+
+  if (DeviceOrientationEvent?.requestPermission) {
+    DeviceOrientationEvent.requestPermission().then(res => {
+      if (res === 'granted') enable();
+    });
+  } else {
+    enable();
+  }
+};
+
+/* =========================
+   BALL DETECTION STATE
+========================= */
 let ballOK = false;
 let ballConfidence = 0;
 let ballPos = null;
 let pixelsPerCm = 0;
+
 let stableBallFrames = 0;
 let lastBall = null;
 
-// ====== swing ======
+/* =========================
+   SWING STATE
+========================= */
 let trail = [];
 let lastWrist = null;
-let maxSpeed = 0;
 let lastTime = 0;
+let maxSpeed = 0;
+let swingDetected = false;
 
-// ====== recording ======
-let recorder;
-let chunks = [];
+let finalVelo = 0;
+let finalAngle = 0;
+let finalDist = 0;
+
+/* =========================
+   RECORDING
+========================= */
 let isRecording = false;
+let mediaRecorder = null;
+let recordedChunks = [];
 
-// ===================== CAMERA =====================
+/* =========================
+   LIST
+========================= */
+let swingRecords = [];
+let totalSlots = 5;
+
+/* =========================
+   CAMERA
+========================= */
 async function startCamera() {
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: "environment" }
+    video: { facingMode: 'environment' }
   });
 
   video.srcObject = stream;
@@ -81,25 +103,9 @@ async function startCamera() {
   canvas.height = video.videoHeight;
 }
 
-// ===================== GYRO =====================
-window.requestGyro = function () {
-  DeviceOrientationEvent.requestPermission?.().then(res => {
-    if (res === "granted") {
-      window.addEventListener("deviceorientation", e => {
-        deviceTilt = e.gamma || 0;
-      });
-      gyroEnabled = true;
-      status.textContent = "陀螺儀啟用";
-    }
-  }).catch(() => {
-    window.addEventListener("deviceorientation", e => {
-      deviceTilt = e.gamma || 0;
-    });
-    gyroEnabled = true;
-  });
-};
-
-// ===================== BALL DETECTION =====================
+/* =========================
+   BALL DETECTION (clean)
+========================= */
 function detectWhiteBall(imageData, cw, ch) {
   const cx = cw / 2;
   const cy = ch / 2;
@@ -110,8 +116,7 @@ function detectWhiteBall(imageData, cw, ch) {
   let count = 0;
   let bx = 0, by = 0;
 
-  let minX = cw, maxX = 0;
-  let minY = ch, maxY = 0;
+  let minX = cw, maxX = 0, minY = ch, maxY = 0;
 
   for (let y = cy - baseR; y < cy + baseR; y += 2) {
     for (let x = cx - baseR; x < cx + baseR; x += 2) {
@@ -121,9 +126,12 @@ function detectWhiteBall(imageData, cw, ch) {
       if (xi < 0 || yi < 0 || xi >= cw || yi >= ch) continue;
 
       const i = (yi * cw + xi) * 4;
-      const r = data[i], g = data[i + 1], b = data[i + 2];
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
 
       const brightness = (r + g + b) / 3;
+
       const isWhite =
         brightness > 200 &&
         Math.max(r, g, b) - Math.min(r, g, b) < 35;
@@ -145,10 +153,14 @@ function detectWhiteBall(imageData, cw, ch) {
 
   const w = maxX - minX;
   const h = maxY - minY;
-  if (w === 0 || h === 0) return { found: false };
+
+  if (!w || !h) return { found: false };
 
   const roundness = Math.min(w, h) / Math.max(w, h);
+  const density = count / (w * h);
+
   if (roundness < 0.65) return { found: false };
+  if (density < 0.08) return { found: false };
 
   return {
     found: true,
@@ -158,101 +170,97 @@ function detectWhiteBall(imageData, cw, ch) {
   };
 }
 
-// ===================== RECORD =====================
-function startRecording(stream) {
-  chunks = [];
-  recorder = new MediaRecorder(stream);
-
-  recorder.ondataavailable = e => chunks.push(e.data);
-  recorder.start();
-  isRecording = true;
-}
-
-function stopRecording() {
-  if (!recorder) return;
-  recorder.stop();
-  isRecording = false;
-}
-
-// ===================== LOOP =====================
+/* =========================
+   LOOP
+========================= */
 function loop() {
   const cw = canvas.width;
   const ch = canvas.height;
 
   ctx.drawImage(video, 0, 0, cw, ch);
 
-  const imageData = ctx.getImageData(0, 0, cw, ch);
-
-  // ===== BALL =====
-  const ball = detectWhiteBall(imageData, cw, ch);
-
-  if (ball.found) {
-    stableBallFrames++;
-    lastBall = ball;
-  } else {
-    stableBallFrames = Math.max(0, stableBallFrames - 1);
-  }
-
-  ballOK = stableBallFrames > 3;
-
-  const tx = ball.found ? ball.x : cw / 2;
-  const ty = ball.found ? ball.y : ch / 2;
-
-  if (!ballPos) ballPos = { x: tx, y: ty };
-
-  ballPos.x += (tx - ballPos.x) * 0.2;
-  ballPos.y += (ty - ballPos.y) * 0.2;
-
-  ctx.beginPath();
-  ctx.arc(ballPos.x, ballPos.y, 30, 0, Math.PI * 2);
-  ctx.strokeStyle = ballOK ? "red" : "gray";
-  ctx.stroke();
-
-  // ===== STATUS =====
-  status.textContent = ballOK
-    ? "球穩定"
-    : "找球中";
-
-  // ===== SWING =====
   const now = performance.now();
 
-  const results = poseLandmarker?.detectForVideo(video, now);
+  /* ========= PHASE 1 ========= */
+  if (phase === 1) {
 
-  if (results?.landmarks?.length) {
-    const lm = results.landmarks[0];
+    tmpCanvas.width = cw;
+    tmpCanvas.height = ch;
+    tmpCtx.drawImage(video, 0, 0, cw, ch);
 
-    const wrist = lm[16];
+    const imageData = tmpCtx.getImageData(0, 0, cw, ch);
+    const ball = detectWhiteBall(imageData, cw, ch);
 
-    if (wrist) {
-      const wx = wrist.x * cw;
-      const wy = wrist.y * ch;
+    if (ball.found) {
+      stableBallFrames++;
+      lastBall = ball;
+    } else {
+      stableBallFrames = Math.max(0, stableBallFrames - 2);
+    }
 
-      let speed = 0;
+    ballOK = stableBallFrames >= 3;
 
-      if (lastWrist) {
-        const dx = wx - lastWrist.x;
-        const dy = wy - lastWrist.y;
-        const dt = (now - lastTime) / 1000;
-        speed = Math.sqrt(dx * dx + dy * dy) / dt;
+    ctx.beginPath();
+    ctx.arc(ball.x || cw/2, ball.y || ch/2, 34, 0, Math.PI * 2);
+    ctx.strokeStyle = ball.found ? '#ef4444' : 'rgba(255,60,60,0.25)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    const tiltOK = Math.abs(deviceTilt) < 3;
+
+    levelOK = gyroEnabled && tiltOK;
+
+    mainBtn.disabled = !(ballOK && levelOK);
+    mainBtn.textContent = ballOK && levelOK ? '✅ 開始揮棒' : '偵測中...';
+
+  }
+
+  /* ========= PHASE 2 ========= */
+  if (phase === 2 && poseLandmarker) {
+
+    const results = poseLandmarker.detectForVideo(video, now);
+
+    if (results.landmarks?.length) {
+
+      const lm = results.landmarks[0];
+
+      const wrist = lm[handedness === 'right' ? 16 : 15];
+
+      if (wrist) {
+
+        const wx = wrist.x * cw;
+        const wy = wrist.y * ch;
+
+        let speed = 0;
+
+        if (lastWrist) {
+          const dx = wx - lastWrist.x;
+          const dy = wy - lastWrist.y;
+          const dt = (now - lastTime) / 1000;
+          speed = Math.sqrt(dx*dx + dy*dy) / dt;
+        }
+
+        maxSpeed = Math.max(maxSpeed, speed);
+
+        lastWrist = { x: wx, y: wy };
+        lastTime = now;
+
+        ctx.beginPath();
+        ctx.arc(wx, wy, 6, 0, Math.PI*2);
+        ctx.fillStyle = '#22c55e';
+        ctx.fill();
+
+        finalVelo = Math.round(maxSpeed * 0.036);
       }
-
-      trail.push({ wx, wy });
-
-      if (trail.length > 50) trail.shift();
-
-      lastWrist = { x: wx, y: wy };
-      lastTime = now;
-
-      ctx.beginPath();
-      ctx.arc(wx, wy, 6, 0, Math.PI * 2);
-      ctx.fill();
     }
   }
 
-  requestAnimationFrame(loop);
+  animId = requestAnimationFrame(loop);
 }
 
-// ===================== INIT =====================
+/* =========================
+   INIT
+========================= */
 async function init() {
   const vision = await FilesetResolver.forVisionTasks(
     "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
@@ -261,31 +269,20 @@ async function init() {
   poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
     baseOptions: {
       modelAssetPath:
-        "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task"
+        "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+      delegate: "GPU"
     },
     runningMode: "VIDEO"
   });
 
-  status.textContent = "啟動完成";
+  tracking = true;
   loop();
 }
 
-// ===================== BUTTON =====================
-window.handleMain = function () {
-  status.textContent = "開始揮棒";
-};
-
-window.resetAll = function () {
-  stableBallFrames = 0;
-  ballOK = false;
-  trail = [];
-  status.textContent = "重置完成";
-};
-
-// ===================== START =====================
-await startCamera();
-await init();
+/* =========================
+   START
+========================= */
+startCamera();
+init();
 
 </script>
-</body>
-</html>

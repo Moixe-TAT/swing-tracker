@@ -99,7 +99,7 @@
 <div class="topbar">
   <button class="back-btn" onclick="location.href='index.html'">←</button>
   <span class="topbar-title">⚾ T座模式</span>
-  <span style="font-size:10px;color:#444;margin-left:4px;">v0.2.0</span>
+  <span style="font-size:10px;color:#444;margin-left:4px;">v0.2.1</span>
   <span class="topbar-badge" id="step-badge">準備中</span>
 </div>
 
@@ -269,21 +269,21 @@ function drawAngleCard(angle, velo) {
   aCtx.fillStyle = '#111';
   aCtx.fillRect(0, 0, w, h);
 
-  const cx = w * 0.3, cy = h * 0.85;
-  const r = h * 0.7;
+  const cx = w * 0.35, cy = h * 0.82;
+  const r = Math.min(w, h) * 0.55;
 
   // 弧形背景
   aCtx.beginPath();
   aCtx.arc(cx, cy, r, Math.PI, 0);
   aCtx.strokeStyle = '#2a2a2a';
-  aCtx.lineWidth = 2;
+  aCtx.lineWidth = 1.5;
   aCtx.stroke();
 
   // 刻度
-  for (let deg = 0; deg <= 180; deg += 30) {
+  for (let deg = 0; deg <= 180; deg += 45) {
     const rad = (180 - deg) * Math.PI / 180;
-    const x1 = cx + (r-8) * Math.cos(rad);
-    const y1 = cy - (r-8) * Math.sin(rad);
+    const x1 = cx + (r-6) * Math.cos(rad);
+    const y1 = cy - (r-6) * Math.sin(rad);
     const x2 = cx + r * Math.cos(rad);
     const y2 = cy - r * Math.sin(rad);
     aCtx.beginPath();
@@ -294,39 +294,39 @@ function drawAngleCard(angle, velo) {
   // 仰角箭頭
   const clampedAngle = Math.max(-10, Math.min(90, angle));
   const arrowRad = (180 - clampedAngle) * Math.PI / 180;
-  const ax = cx + (r-15) * Math.cos(arrowRad);
-  const ay = cy - (r-15) * Math.sin(arrowRad);
+  const ax = cx + (r - 12) * Math.cos(arrowRad);
+  const ay = cy - (r - 12) * Math.sin(arrowRad);
 
   aCtx.beginPath();
   aCtx.moveTo(cx, cy);
   aCtx.lineTo(ax, ay);
   aCtx.strokeStyle = '#f59e0b';
-  aCtx.lineWidth = 3;
+  aCtx.lineWidth = 2.5;
   aCtx.lineCap = 'round';
   aCtx.stroke();
 
-  // 箭頭頭
   aCtx.beginPath();
-  aCtx.arc(ax, ay, 5, 0, Math.PI*2);
+  aCtx.arc(ax, ay, 4, 0, Math.PI*2);
   aCtx.fillStyle = '#f59e0b';
   aCtx.fill();
 
-  // 初速（右上）
+  // 初速（右上角）
   aCtx.fillStyle = '#fff';
-  aCtx.font = 'bold 18px sans-serif';
+  aCtx.font = `bold ${Math.round(w*0.13)}px sans-serif`;
   aCtx.textAlign = 'right';
-  aCtx.fillText(velo, w - 8, 22);
-  aCtx.font = '10px sans-serif';
+  aCtx.fillText(velo || '—', w - 6, h * 0.18);
+  aCtx.font = `${Math.round(w*0.08)}px sans-serif`;
   aCtx.fillStyle = '#666';
-  aCtx.fillText('km/h', w - 8, 34);
+  aCtx.fillText('km/h', w - 6, h * 0.28);
 
-  // 仰角（右下）
+  // 仰角（右下角）
   aCtx.fillStyle = '#f59e0b';
-  aCtx.font = 'bold 16px sans-serif';
-  aCtx.fillText(angle + '°', w - 8, h - 20);
-  aCtx.font = '10px sans-serif';
+  aCtx.font = `bold ${Math.round(w*0.12)}px sans-serif`;
+  aCtx.textAlign = 'right';
+  aCtx.fillText((angle || '—') + (angle !== undefined ? '°' : ''), w - 6, h * 0.88);
+  aCtx.font = `${Math.round(w*0.08)}px sans-serif`;
   aCtx.fillStyle = '#666';
-  aCtx.fillText('仰角', w - 8, h - 8);
+  aCtx.fillText('仰角', w - 6, h * 0.97);
 }
 
 // 畫球場卡片
@@ -336,12 +336,13 @@ function drawFieldCard(dist, angle) {
   fCtx.fillStyle = '#111';
   fCtx.fillRect(0, 0, w, h);
 
-  const bx = w * 0.18, by = h * 0.88;
+  const bx = w * 0.15, by = h * 0.92;
+  const maxR = Math.min(w, h) * 0.82;
 
-  // 球場草地扇形
+  // 球場扇形
   fCtx.beginPath();
   fCtx.moveTo(bx, by);
-  fCtx.arc(bx, by, w * 0.85, -Math.PI*0.75, -Math.PI*0.25);
+  fCtx.arc(bx, by, maxR, -Math.PI * 0.72, -Math.PI * 0.28);
   fCtx.closePath();
   fCtx.fillStyle = '#0d2010';
   fCtx.fill();
@@ -349,58 +350,57 @@ function drawFieldCard(dist, angle) {
   fCtx.lineWidth = 1;
   fCtx.stroke();
 
-  // 全壘打牆（約100m）
-  const wallDist = Math.min(w*0.78, w*0.78);
+  // 全壘打牆虛線
   fCtx.beginPath();
-  fCtx.arc(bx, by, wallDist, -Math.PI*0.75, -Math.PI*0.25);
+  fCtx.arc(bx, by, maxR * 0.88, -Math.PI * 0.72, -Math.PI * 0.28);
   fCtx.strokeStyle = '#ef4444';
-  fCtx.lineWidth = 2;
-  fCtx.setLineDash([4,3]);
+  fCtx.lineWidth = 1.5;
+  fCtx.setLineDash([3, 3]);
   fCtx.stroke();
   fCtx.setLineDash([]);
 
-  // 距離標籤
+  // 100m 標籤
   fCtx.fillStyle = '#ef4444';
-  fCtx.font = '9px sans-serif';
-  fCtx.textAlign = 'left';
-  fCtx.fillText('100m', bx + wallDist * 0.68, by - wallDist * 0.68 - 4);
+  fCtx.font = `${Math.round(w*0.07)}px sans-serif`;
+  fCtx.textAlign = 'right';
+  fCtx.fillText('100m', w - 4, h * 0.12);
 
   // 落點計算
   const maxDist = 150;
-  const ratio = Math.min(dist / maxDist, 1);
-  const clampedAngle = Math.max(0, Math.min(90, angle));
-  const dirRad = -Math.PI * 0.5; // 正中間
-  const px = bx + ratio * wallDist * Math.cos(dirRad);
-  const py = by + ratio * wallDist * Math.sin(dirRad);
+  const ratio = Math.min((dist || 0) / maxDist, 1);
+  const dirRad = -Math.PI * 0.5;
+  const px = bx + ratio * maxR * 0.88 * Math.cos(dirRad);
+  const py = by + ratio * maxR * 0.88 * Math.sin(dirRad);
 
-  // 落點弧線
-  fCtx.beginPath();
-  fCtx.moveTo(bx, by);
-  const midX = bx + ratio * wallDist * 0.5 * Math.cos(dirRad);
-  const midY = by + ratio * wallDist * 0.5 * Math.sin(dirRad) - ratio * 30;
-  fCtx.quadraticCurveTo(midX, midY, px, py);
-  fCtx.strokeStyle = '#f59e0b';
-  fCtx.lineWidth = 2;
-  fCtx.stroke();
+  if (dist > 0) {
+    // 弧線
+    fCtx.beginPath();
+    fCtx.moveTo(bx, by);
+    const midX = bx + ratio * maxR * 0.44 * Math.cos(dirRad);
+    const midY = by + ratio * maxR * 0.44 * Math.sin(dirRad) - ratio * maxR * 0.2;
+    fCtx.quadraticCurveTo(midX, midY, px, py);
+    fCtx.strokeStyle = '#f59e0b';
+    fCtx.lineWidth = 2;
+    fCtx.stroke();
 
-  // 落點標記
-  fCtx.beginPath();
-  fCtx.arc(px, py, 5, 0, Math.PI*2);
-  fCtx.fillStyle = dist > 100 ? '#ef4444' : '#f59e0b';
-  fCtx.fill();
+    // 落點
+    fCtx.beginPath();
+    fCtx.arc(px, py, 4, 0, Math.PI*2);
+    fCtx.fillStyle = dist > 100 ? '#ef4444' : '#f59e0b';
+    fCtx.fill();
+  }
 
   // 距離數字
   fCtx.fillStyle = '#fff';
-  fCtx.font = 'bold 14px sans-serif';
+  fCtx.font = `bold ${Math.round(w*0.12)}px sans-serif`;
   fCtx.textAlign = 'right';
-  fCtx.fillText(dist > 0 ? dist + 'm' : '—', w - 6, h - 6);
+  fCtx.fillText(dist > 0 ? dist + 'm' : '—', w - 4, h - 4);
 
   // HR 標記
   if (dist > 100) {
     fCtx.fillStyle = '#ef4444';
-    fCtx.font = 'bold 11px sans-serif';
-    fCtx.textAlign = 'right';
-    fCtx.fillText('HR!', w - 6, h - 20);
+    fCtx.font = `bold ${Math.round(w*0.09)}px sans-serif`;
+    fCtx.fillText('HR!', w - 4, h - 4 - Math.round(w*0.14));
   }
 }
 

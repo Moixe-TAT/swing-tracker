@@ -130,10 +130,6 @@
     <div class="data-card-title">擊球初速 / 仰角</div>
     <canvas id="angleCanvas" class="mini" width="160" height="160"></canvas>
   </div>
-  <div class="data-card">
-    <div class="data-card-title">預測落點</div>
-    <canvas id="fieldCanvas" class="mini" width="160" height="160"></canvas>
-  </div>
 </div>
 
 <div class="control-row">
@@ -329,85 +325,10 @@ function drawAngleCard(angle, velo) {
   aCtx.fillText('仰角', w - 6, h * 0.97);
 }
 
-// 畫球場卡片
-function drawFieldCard(dist, angle) {
-  const w = fieldCanvas.width, h = fieldCanvas.height;
-  fCtx.clearRect(0, 0, w, h);
-  fCtx.fillStyle = '#111';
-  fCtx.fillRect(0, 0, w, h);
-
-  const bx = w * 0.15, by = h * 0.92;
-  const maxR = Math.min(w, h) * 0.82;
-
-  // 球場扇形
-  fCtx.beginPath();
-  fCtx.moveTo(bx, by);
-  fCtx.arc(bx, by, maxR, -Math.PI * 0.72, -Math.PI * 0.28);
-  fCtx.closePath();
-  fCtx.fillStyle = '#0d2010';
-  fCtx.fill();
-  fCtx.strokeStyle = '#1a3a1a';
-  fCtx.lineWidth = 1;
-  fCtx.stroke();
-
-  // 全壘打牆虛線
-  fCtx.beginPath();
-  fCtx.arc(bx, by, maxR * 0.88, -Math.PI * 0.72, -Math.PI * 0.28);
-  fCtx.strokeStyle = '#ef4444';
-  fCtx.lineWidth = 1.5;
-  fCtx.setLineDash([3, 3]);
-  fCtx.stroke();
-  fCtx.setLineDash([]);
-
-  // 100m 標籤
-  fCtx.fillStyle = '#ef4444';
-  fCtx.font = `${Math.round(w*0.07)}px sans-serif`;
-  fCtx.textAlign = 'right';
-  fCtx.fillText('100m', w - 4, h * 0.12);
-
-  // 落點計算
-  const maxDist = 150;
-  const ratio = Math.min((dist || 0) / maxDist, 1);
-  const dirRad = -Math.PI * 0.5;
-  const px = bx + ratio * maxR * 0.88 * Math.cos(dirRad);
-  const py = by + ratio * maxR * 0.88 * Math.sin(dirRad);
-
-  if (dist > 0) {
-    // 弧線
-    fCtx.beginPath();
-    fCtx.moveTo(bx, by);
-    const midX = bx + ratio * maxR * 0.44 * Math.cos(dirRad);
-    const midY = by + ratio * maxR * 0.44 * Math.sin(dirRad) - ratio * maxR * 0.2;
-    fCtx.quadraticCurveTo(midX, midY, px, py);
-    fCtx.strokeStyle = '#f59e0b';
-    fCtx.lineWidth = 2;
-    fCtx.stroke();
-
-    // 落點
-    fCtx.beginPath();
-    fCtx.arc(px, py, 4, 0, Math.PI*2);
-    fCtx.fillStyle = dist > 100 ? '#ef4444' : '#f59e0b';
-    fCtx.fill();
-  }
-
-  // 距離數字
-  fCtx.fillStyle = '#fff';
-  fCtx.font = `bold ${Math.round(w*0.12)}px sans-serif`;
-  fCtx.textAlign = 'right';
-  fCtx.fillText(dist > 0 ? dist + 'm' : '—', w - 4, h - 4);
-
-  // HR 標記
-  if (dist > 100) {
-    fCtx.fillStyle = '#ef4444';
-    fCtx.font = `bold ${Math.round(w*0.09)}px sans-serif`;
-    fCtx.fillText('HR!', w - 4, h - 4 - Math.round(w*0.14));
-  }
-}
 
 // 初始化卡片
 function initCards() {
   drawAngleCard(0, 0);
-  drawFieldCard(0, 0);
 }
 
 // 列表
@@ -867,8 +788,7 @@ function loop() {
 
         finalVelo = kmh; finalAngle = launchAngle; finalDist = dist;
         drawAngleCard(launchAngle, kmh);
-        drawFieldCard(dist, launchAngle);
-        status.textContent = speed > 20 ? '🔴 擊球！' : speed > 8 ? '🟡 加速中' : '🔵 準備期';
+            status.textContent = speed > 20 ? '🔴 擊球！' : speed > 8 ? '🟡 加速中' : '🔵 準備期';
       }
     }
   }

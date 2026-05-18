@@ -24,33 +24,33 @@
   .status-bar { width: 100%; max-width: 480px; padding: 10px 14px 4px; }
   .status-text { font-size: 13px; color: #f59e0b; min-height: 20px; }
 
-  .detect-row { display: flex; gap: 8px; width: 100%; max-width: 480px; padding: 0 14px 10px; }
+  .detect-row { display: flex; gap: 8px; width: 100%; max-width: 480px; padding: 0 14px 6px; }
   .detect-item { flex: 1; background: #1a1a1a; border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #555; transition: all 0.3s; }
   .detect-item.ok { background: #0f2e1a; color: #22c55e; }
   .detect-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; flex-shrink: 0; transition: all 0.3s; }
   .detect-item.ok .detect-dot { background: #22c55e; }
 
-  /* 數據區 */
+  .gyro-btn-wrap { width: 100%; max-width: 480px; padding: 0 14px 10px; }
+  .gyro-btn { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #333; background: #1a1a1a; color: #f59e0b; font-size: 13px; cursor: pointer; }
+  .gyro-btn:disabled { color: #22c55e; opacity: 1; }
+
   .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; max-width: 480px; padding: 0 14px; }
   .stat { background: #1a1a1a; border-radius: 10px; padding: 12px; text-align: center; }
   .stat-label { font-size: 11px; color: #666; margin-bottom: 4px; }
   .stat-value { font-size: 20px; font-weight: 500; }
   .stat-unit { font-size: 11px; color: #666; }
 
-  /* 控制列 */
   .control-row { display: flex; gap: 10px; width: 100%; max-width: 480px; padding: 10px 14px; align-items: center; }
-  .lr-toggle { display: flex; background: #1a1a1a; border-radius: 10px; overflow: hidden; border: 1px solid #2a2a2a; }
+  .lr-toggle { display: flex; background: #1a1a1a; border-radius: 10px; overflow: hidden; border: 1px solid #2a2a2a; flex-shrink: 0; }
   .lr-btn { padding: 10px 16px; border: none; background: transparent; color: #555; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
   .lr-btn.active { background: #fff; color: #000; }
-
-  .btns { display: flex; gap: 10px; flex: 1; }
+  .btns { display: flex; gap: 8px; flex: 1; }
   button.main { flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; background: #fff; color: #000; transition: all 0.2s; }
   button.main:disabled { opacity: 0.35; cursor: not-allowed; }
   button.main.ready { background: #22c55e; color: #fff; }
   button.main.recording { background: #ef4444; color: #fff; }
   button.sub { padding: 12px 16px; border-radius: 10px; border: none; font-size: 13px; cursor: pointer; background: #1a1a1a; color: #fff; }
 
-  /* 列表 */
   .list-section { width: 100%; max-width: 480px; padding: 4px 14px 0; }
   .list-title { font-size: 13px; color: #666; font-weight: 500; margin-bottom: 10px; }
   .swing-list { display: flex; flex-direction: column; gap: 8px; }
@@ -83,7 +83,6 @@
   .detail-card-value { font-size: 16px; font-weight: 600; color: #fff; }
   .detail-card-unit { font-size: 10px; color: #555; }
 
-  /* 彈窗 */
   .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 99; padding: 20px; }
   .modal.show { display: flex; }
   .modal-box { background: #1a1a1a; border-radius: 16px; padding: 16px; width: 100%; max-width: 440px; }
@@ -118,9 +117,13 @@
   <div class="detect-item" id="detect-level"><div class="detect-dot"></div>📐 水平校準</div>
 </div>
 
+<div class="gyro-btn-wrap" id="gyro-btn-wrap">
+  <button class="gyro-btn" id="gyro-btn" onclick="requestGyro()">📱 啟用水平感應（iPhone請點此）</button>
+</div>
+
 <div class="stats">
   <div class="stat"><div class="stat-label">擊球初速</div><div class="stat-value" id="velo">—<span class="stat-unit"> km/h</span></div></div>
-  <div class="stat"><div class="stat-label">擊球仰角</div><div class="stat-value" id="angle">—<span class="stat-unit"> °</span></div></div>
+  <div class="stat"><div class="stat-label">擊球仰角</div><div class="stat-value" id="angle">—<span class="stat-unit">°</span></div></div>
   <div class="stat"><div class="stat-label">預測距離</div><div class="stat-value" id="distance">—<span class="stat-unit"> m</span></div></div>
 </div>
 
@@ -161,20 +164,19 @@ const status = document.getElementById('status');
 const mainBtn = document.getElementById('mainBtn');
 
 let poseLandmarker = null;
-let phase = 1; // 1=校準 2=揮棒
+let phase = 1;
 let tracking = false;
 let animId = null;
-let handedness = 'right'; // right or left
+let handedness = 'right';
 
 // 陀螺儀
-let deviceTilt = 0; // 手機傾斜角度（度）
+let deviceTilt = 0;
 let levelOK = false, levelConfidence = 0;
 let gyroEnabled = false;
 
 // 球偵測
 let ballOK = false, ballConfidence = 0;
-let ballPos = null, trackedBall = null;
-let ballWasFound = false;
+let ballPos = null;
 
 // 揮棒
 let trail = [], lastWrist = null, maxSpeed = 0;
@@ -192,37 +194,41 @@ let countdownInterval = null;
 let swingRecords = [];
 let totalSlots = 5;
 
-// 陀螺儀初始化
-function initGyro() {
-  if (typeof DeviceOrientationEvent !== 'undefined') {
-    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-      // iOS 需要請求權限
-      DeviceOrientationEvent.requestPermission().then(state => {
-        if (state === 'granted') {
-          window.addEventListener('deviceorientation', handleOrientation);
-          gyroEnabled = true;
-        }
-      }).catch(() => { gyroEnabled = false; });
-    } else {
-      window.addEventListener('deviceorientation', handleOrientation);
-      gyroEnabled = true;
-    }
-  }
-}
-
+// 陀螺儀
 function handleOrientation(e) {
-  // gamma = 左右傾斜（-90 到 90）
   deviceTilt = e.gamma || 0;
 }
 
-// 左打右打切換
+window.requestGyro = function() {
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission().then(state => {
+      if (state === 'granted') {
+        window.addEventListener('deviceorientation', handleOrientation);
+        gyroEnabled = true;
+        const btn = document.getElementById('gyro-btn');
+        btn.textContent = '✅ 水平感應已啟用';
+        btn.disabled = true;
+      }
+    }).catch(() => {
+      status.textContent = '⚠️ 無法取得陀螺儀權限';
+    });
+  } else {
+    window.addEventListener('deviceorientation', handleOrientation);
+    gyroEnabled = true;
+    const btn = document.getElementById('gyro-btn');
+    btn.textContent = '✅ 水平感應已啟用';
+    btn.disabled = true;
+  }
+}
+
 window.setHandedness = function(side) {
   handedness = side;
   document.getElementById('btn-right').classList.toggle('active', side === 'right');
   document.getElementById('btn-left').classList.toggle('active', side === 'left');
 }
 
-// 列表初始化
+// 列表
 function initList() {
   const list = document.getElementById('swing-list');
   list.innerHTML = '';
@@ -260,7 +266,7 @@ function fillSlot(record) {
         <div class="swing-stats-row">
           <div class="swing-stat"><span class="swing-stat-label">初速</span><span class="swing-stat-value">${record.velo}<span style="font-size:10px;color:#555"> km/h</span></span></div>
           <div class="swing-stat"><span class="swing-stat-label">仰角</span><span class="swing-stat-value">${record.angle}<span style="font-size:10px;color:#555">°</span></span></div>
-          <div class="swing-stat"><span class="swing-stat-label">距離</span><span class="swing-stat-value">${record.dist > 0 ? record.dist : '—'}<span style="font-size:10px;color:#555">${record.dist > 0 ? 'm' : ''}</span></span></div>
+          <div class="swing-stat"><span class="swing-stat-label">距離</span><span class="swing-stat-value">${record.dist > 0 ? record.dist : '—'}<span style="font-size:10px;color:#555">${record.dist > 0 ? ' m' : ''}</span></span></div>
         </div>
         <button class="swing-expand-btn" onclick="toggleDetail(${idx})">▾</button>
       </div>
@@ -291,29 +297,43 @@ function fillSlot(record) {
 }
 
 window.toggleDetail = function(idx) {
-  const detail = document.getElementById(`detail-${idx}`);
-  if (detail) detail.classList.toggle('show');
+  const d = document.getElementById(`detail-${idx}`);
+  if (d) d.classList.toggle('show');
 }
 
-async function init() {
-  try {
-    const vision = await FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
-    );
-    poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
-      baseOptions: {
-        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
-        delegate: "GPU"
-      },
-      runningMode: "VIDEO",
-      numPoses: 1
-    });
-    tracking = true;
-    status.textContent = '🎯 請將白色球放入圈內，並讓手機保持水平';
-    loop();
-  } catch(e) {
-    status.textContent = '⚠️ 載入失敗，請重新整理';
+// 球偵測：白色 + 圓形
+function detectWhiteBall(imageData, cw, ch) {
+  const cx = cw/2, cy = ch/2;
+  const searchR = Math.min(cw,ch)*0.3;
+  const data = imageData.data;
+  let count = 0, bx = 0, by = 0;
+  let minX = cw, maxX = 0, minY = ch, maxY = 0;
+
+  for (let y = cy-searchR; y < cy+searchR; y += 3) {
+    for (let x = cx-searchR; x < cx+searchR; x += 3) {
+      const xi = Math.floor(x), yi = Math.floor(y);
+      if (xi < 0 || yi < 0 || xi >= cw || yi >= ch) continue;
+      const i = (yi*cw + xi)*4;
+      const r = data[i], g = data[i+1], b = data[i+2];
+      const isWhite = r > 190 && g > 190 && b > 190
+                   && Math.max(r,g,b) - Math.min(r,g,b) < 45;
+      const dist = Math.sqrt((x-cx)**2+(y-cy)**2);
+      if (isWhite && dist < searchR) {
+        count++; bx+=x; by+=y;
+        if (x < minX) minX=x; if (x > maxX) maxX=x;
+        if (y < minY) minY=y; if (y > maxY) maxY=y;
+      }
+    }
   }
+
+  if (count < 15) return { x: cx, y: cy, found: false };
+
+  // 圓形判斷：寬高比接近 1
+  const w = maxX - minX, h = maxY - minY;
+  const ratio = w > 0 && h > 0 ? Math.min(w,h)/Math.max(w,h) : 0;
+  if (ratio < 0.55) return { x: cx, y: cy, found: false };
+
+  return { x: bx/count, y: by/count, found: true };
 }
 
 async function startCamera() {
@@ -330,27 +350,25 @@ async function startCamera() {
   }
 }
 
-// 找白色圓形
-function detectWhiteBall(imageData, cw, ch) {
-  const cx = cw/2, cy = ch/2;
-  const searchR = Math.min(cw,ch)*0.3;
-  const data = imageData.data;
-  let count = 0, bx = 0, by = 0;
-
-  for (let y = cy-searchR; y < cy+searchR; y += 3) {
-    for (let x = cx-searchR; x < cx+searchR; x += 3) {
-      const xi = Math.floor(x), yi = Math.floor(y);
-      if (xi < 0 || yi < 0 || xi >= cw || yi >= ch) continue;
-      const i = (yi*cw + xi)*4;
-      const r = data[i], g = data[i+1], b = data[i+2];
-      // 白色：三個 channel 都高，且彼此接近
-      const isWhite = r > 200 && g > 200 && b > 200 && Math.max(r,g,b) - Math.min(r,g,b) < 40;
-      const dist = Math.sqrt((x-cx)**2+(y-cy)**2);
-      if (isWhite && dist < searchR) { count++; bx+=x; by+=y; }
-    }
+async function init() {
+  try {
+    const vision = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+    );
+    poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+        delegate: "GPU"
+      },
+      runningMode: "VIDEO",
+      numPoses: 1
+    });
+    tracking = true;
+    status.textContent = '🎯 請將白色球放入圈內，並點擊啟用水平感應';
+    loop();
+  } catch(e) {
+    status.textContent = '⚠️ 載入失敗，請重新整理';
   }
-  if (count > 15) return { x: bx/count, y: by/count, found: true, size: Math.sqrt(count) };
-  return { x: cx, y: cy, found: false, size: 0 };
 }
 
 function startRecording() {
@@ -361,8 +379,8 @@ function startRecording() {
     mediaRecorder.start();
     isRecording = true;
     document.getElementById('rec-indicator').style.display = 'flex';
-    // 水平線消失
     document.getElementById('detect-row').style.display = 'none';
+    document.getElementById('gyro-btn-wrap').style.display = 'none';
 
     let secs = 6;
     const cd = document.getElementById('countdown');
@@ -374,7 +392,7 @@ function startRecording() {
       if (secs <= 0) stopRecording();
     }, 1000);
   } catch(e) {
-    status.textContent = '⚠️ 錄影失敗，繼續分析中';
+    status.textContent = '⚠️ 錄影失敗';
   }
 }
 
@@ -390,20 +408,15 @@ function stopRecording() {
 }
 
 function calcBodyMetrics() {
-  // 頭部移動：頭部X位移範圍
-  let headMove = 0;
+  let headMove = 0, hipMove = 0, ankleSpan = 0;
   if (headPositions.length > 1) {
     const xs = headPositions.map(p => p.x);
     headMove = Math.round(Math.max(...xs) - Math.min(...xs));
   }
-  // 重心位移：髖部X位移範圍
-  let hipMove = 0;
   if (hipPositions.length > 1) {
     const xs = hipPositions.map(p => p.x);
     hipMove = Math.round(Math.max(...xs) - Math.min(...xs));
   }
-  // 跨步幅度：兩腳踝最大距離
-  let ankleSpan = 0;
   if (anklePositions.length > 1) {
     const spans = anklePositions.map(p => Math.abs(p.lx - p.rx));
     ankleSpan = Math.round(Math.max(...spans));
@@ -416,22 +429,18 @@ function saveRecord() {
   const url = URL.createObjectURL(blob);
   const num = swingRecords.length + 1;
   const body = calcBodyMetrics();
-  const record = {
-    num, velo: finalVelo, angle: finalAngle, dist: finalDist,
-    headMove: body.headMove, hipMove: body.hipMove, ankleSpan: body.ankleSpan,
-    url, blob
-  };
+  const record = { num, velo: finalVelo, angle: finalAngle, dist: finalDist, ...body, url, blob };
   swingRecords.push(record);
   fillSlot(record);
 
-  // 重置
   trail = []; lastWrist = null; maxSpeed = 0; swingDetected = false;
   finalVelo = 0; finalAngle = 0; finalDist = 0;
   headPositions = []; hipPositions = []; anklePositions = [];
   ballOK = false; levelOK = false; ballConfidence = 0; levelConfidence = 0;
-  ballPos = null; trackedBall = null; ballWasFound = false;
+  ballPos = null;
 
   document.getElementById('detect-row').style.display = 'flex';
+  document.getElementById('gyro-btn-wrap').style.display = 'block';
   document.getElementById('detect-ball').classList.remove('ok');
   document.getElementById('detect-level').classList.remove('ok');
   document.getElementById('step-badge').textContent = '準備中';
@@ -458,18 +467,18 @@ window.handleMain = function() {
 
 window.resetAll = function() {
   phase = 1; tracking = false;
-  ballOK = false; levelOK = false; ballConfidence = 0; levelConfidence = 0;
-  ballPos = null; trackedBall = null; ballWasFound = false;
+  ballOK = false; levelOK = false; ballConfidence = 0; levelConfidence = 0; ballPos = null;
   trail = []; lastWrist = null; maxSpeed = 0; swingDetected = false;
   headPositions = []; hipPositions = []; anklePositions = [];
   if (isRecording) stopRecording();
   cancelAnimationFrame(animId);
   document.getElementById('detect-row').style.display = 'flex';
+  document.getElementById('gyro-btn-wrap').style.display = 'block';
   document.getElementById('detect-ball').classList.remove('ok');
   document.getElementById('detect-level').classList.remove('ok');
   document.getElementById('step-badge').textContent = '準備中';
   document.getElementById('velo').innerHTML = '—<span class="stat-unit"> km/h</span>';
-  document.getElementById('angle').innerHTML = '—<span class="stat-unit"> °</span>';
+  document.getElementById('angle').innerHTML = '—<span class="stat-unit">°</span>';
   document.getElementById('distance').innerHTML = '—<span class="stat-unit"> m</span>';
   mainBtn.textContent = '偵測中...';
   mainBtn.disabled = true;
@@ -492,10 +501,9 @@ window.playRecord = function(index) {
 }
 
 window.downloadRecord = function(index) {
-  const record = swingRecords[index];
   const a = document.createElement('a');
-  a.href = record.url;
-  a.download = `揮棒第${record.num}次.webm`;
+  a.href = swingRecords[index].url;
+  a.download = `揮棒第${swingRecords[index].num}次.webm`;
   a.click();
 }
 
@@ -513,7 +521,6 @@ function getColor(speed) {
 function loop() {
   if (!tracking) return;
   if (video.readyState < 2) { animId = requestAnimationFrame(loop); return; }
-
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const cw = canvas.width, ch = canvas.height;
 
@@ -532,21 +539,12 @@ function loop() {
     ballPos.x += (tx - ballPos.x) * 0.12;
     ballPos.y += (ty - ballPos.y) * 0.12;
 
-    // 搜尋範圍虛線框
+    // 紅色圓框
     ctx.beginPath();
-    ctx.arc(cw/2, ch/2, Math.min(cw,ch)*0.3, 0, Math.PI*2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-    ctx.lineWidth = 1; ctx.setLineDash([5,5]); ctx.stroke(); ctx.setLineDash([]);
-
-    // 追蹤圈
-    const circleColor = ball.found ? '#3b82f6' : 'rgba(255,255,255,0.2)';
-    ctx.beginPath(); ctx.arc(ballPos.x, ballPos.y, 38, 0, Math.PI*2);
-    ctx.strokeStyle = circleColor; ctx.lineWidth = 2; ctx.stroke();
-    ctx.beginPath(); ctx.arc(ballPos.x, ballPos.y, 20, 0, Math.PI*2);
-    ctx.strokeStyle = circleColor; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.strokeStyle = circleColor; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(ballPos.x-30, ballPos.y); ctx.lineTo(ballPos.x+30, ballPos.y); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(ballPos.x, ballPos.y-30); ctx.lineTo(ballPos.x, ballPos.y+30); ctx.stroke();
+    ctx.arc(ballPos.x, ballPos.y, 34, 0, Math.PI*2);
+    ctx.strokeStyle = ball.found ? '#ef4444' : 'rgba(255,60,60,0.25)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
 
     if (ball.found) ballConfidence = Math.min(ballConfidence+1, 50);
     else ballConfidence = Math.max(ballConfidence-1, 0);
@@ -554,50 +552,47 @@ function loop() {
     if (newBallOK !== ballOK) {
       ballOK = newBallOK;
       document.getElementById('detect-ball').classList.toggle('ok', ballOK);
-      if (ballOK) trackedBall = { x: ballPos.x, y: ballPos.y };
     }
 
     // 陀螺儀水平線
     const midY = ch * 0.5;
-    const tiltRad = (deviceTilt || 0) * Math.PI / 180;
     const lineLen = cw * 0.85;
+    const tiltRad = deviceTilt * Math.PI / 180;
+    const tiltOK = Math.abs(deviceTilt) < 3;
 
     // 固定基準線（白色半透明）
     ctx.save();
     ctx.translate(cw/2, midY);
     ctx.beginPath();
     ctx.moveTo(-lineLen/2, 0); ctx.lineTo(lineLen/2, 0);
-    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
     ctx.lineWidth = 6; ctx.stroke();
     ctx.restore();
 
-    // 手機傾斜線（跟著陀螺儀動）
-    const tiltOffset = Math.sin(tiltRad) * lineLen / 2;
-    const tiltOK = Math.abs(deviceTilt) < 3;
-    ctx.save();
-    ctx.translate(cw/2, midY);
-    ctx.beginPath();
-    ctx.moveTo(-lineLen/2, tiltOffset); ctx.lineTo(lineLen/2, -tiltOffset);
-    ctx.strokeStyle = tiltOK ? '#22c55e' : '#f59e0b';
-    ctx.lineWidth = 3; ctx.stroke();
-    ctx.restore();
+    // 傾斜線（跟著手機動）
+    if (gyroEnabled) {
+      const offset = Math.sin(tiltRad) * lineLen / 2;
+      ctx.save();
+      ctx.translate(cw/2, midY);
+      ctx.beginPath();
+      ctx.moveTo(-lineLen/2, offset); ctx.lineTo(lineLen/2, -offset);
+      ctx.strokeStyle = tiltOK ? '#22c55e' : '#f59e0b';
+      ctx.lineWidth = 3; ctx.stroke();
+      ctx.restore();
 
-    // 水平文字提示
-    if (!gyroEnabled) {
-      ctx.fillStyle = 'rgba(255,255,255,0.4)';
-      ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('請允許陀螺儀權限', cw/2, midY - 16);
+      if (tiltOK) levelConfidence = Math.min(levelConfidence+1, 50);
+      else levelConfidence = Math.max(levelConfidence-1, 0);
+    } else {
+      // 陀螺儀未啟用，水平永遠不過
+      levelConfidence = 0;
     }
 
-    if (tiltOK) levelConfidence = Math.min(levelConfidence+1, 50);
-    else levelConfidence = Math.max(levelConfidence-1, 0);
     const newLevelOK = levelConfidence >= 50;
     if (newLevelOK !== levelOK) {
       levelOK = newLevelOK;
       document.getElementById('detect-level').classList.toggle('ok', levelOK);
     }
 
-    // 兩個都 OK
     if (ballOK && levelOK) {
       mainBtn.disabled = false;
       mainBtn.textContent = '✅ 開始揮棒';
@@ -609,37 +604,26 @@ function loop() {
       mainBtn.textContent = '偵測中...';
       mainBtn.className = 'main';
       const b = Math.round(ballConfidence/50*100);
-      const l = Math.round(levelConfidence/50*100);
-      status.textContent = `⚾ 球 ${b}%　📐 水平 ${l}%`;
+      const l = gyroEnabled ? Math.round(levelConfidence/50*100) : 0;
+      status.textContent = `⚾ 球 ${b}%　📐 水平 ${l}%${!gyroEnabled ? '（請啟用感應）' : ''}`;
     }
 
   } else if (phase === 2) {
-    // 揮棒分析
     const now = performance.now();
     const results = poseLandmarker ? poseLandmarker.detectForVideo(video, now) : null;
 
     if (results && results.landmarks && results.landmarks.length > 0) {
       const lm = results.landmarks[0];
-      // 左打右打
       const wristIdx = handedness === 'right' ? 16 : 15;
       const elbowIdx = handedness === 'right' ? 14 : 13;
       const wrist = lm[wristIdx], elbow = lm[elbowIdx];
-
-      // 頭部（鼻子 = 0）
       const nose = lm[0];
-      if (nose) headPositions.push({ x: nose.x*cw, y: nose.y*ch });
-
-      // 髖部重心（左髖23 右髖24 的中點）
       const hipL = lm[23], hipR = lm[24];
-      if (hipL && hipR) {
-        hipPositions.push({ x: ((hipL.x+hipR.x)/2)*cw, y: ((hipL.y+hipR.y)/2)*ch });
-      }
-
-      // 腳踝（左27 右28）
       const ankleL = lm[27], ankleR = lm[28];
-      if (ankleL && ankleR) {
-        anklePositions.push({ lx: ankleL.x*cw, rx: ankleR.x*cw });
-      }
+
+      if (nose) headPositions.push({ x: nose.x*cw, y: nose.y*ch });
+      if (hipL && hipR) hipPositions.push({ x: ((hipL.x+hipR.x)/2)*cw });
+      if (ankleL && ankleR) anklePositions.push({ lx: ankleL.x*cw, rx: ankleR.x*cw });
 
       if (wrist) {
         const wx = wrist.x*cw, wy = wrist.y*ch;
@@ -677,15 +661,12 @@ function loop() {
           launchAngle = Math.round(Math.atan2(ey-wy, wx-ex)*180/Math.PI);
         }
 
-        // 擊球初速：用像素位移換算 km/h（60fps，1px ≈ 0.5cm 估算）
         const kmh = Math.round(maxSpeed * 60 * 0.005 * 3.6);
         const rad = Math.abs(launchAngle)*Math.PI/180;
         const v0ms = maxSpeed * 60 * 0.005;
         const dist = Math.round((v0ms*v0ms*Math.sin(2*rad))/9.8);
 
-        finalVelo = kmh;
-        finalAngle = launchAngle;
-        finalDist = dist;
+        finalVelo = kmh; finalAngle = launchAngle; finalDist = dist;
 
         document.getElementById('velo').innerHTML = `${kmh}<span class="stat-unit"> km/h</span>`;
         document.getElementById('angle').innerHTML = `${launchAngle}<span class="stat-unit">°</span>`;
@@ -700,7 +681,6 @@ function loop() {
 
 initList();
 await startCamera();
-initGyro();
 await init();
 </script>
 </body>

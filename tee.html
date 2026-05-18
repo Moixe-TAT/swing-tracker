@@ -36,7 +36,7 @@
 
   /* 數據卡片區 */
   .data-row { display: flex; gap: 10px; width: 100%; max-width: 480px; padding: 0 14px; }
-  .data-card { flex: 1; background: #1a1a1a; border-radius: 12px; padding: 12px; }
+  .data-card { flex: 1; background: #1a1a1a; border-radius: 12px; padding: 10px; aspect-ratio: 1/1; }
   .data-card-title { font-size: 11px; color: #666; margin-bottom: 8px; }
   canvas.mini { width: 100%; border-radius: 8px; display: block; }
 
@@ -99,6 +99,7 @@
 <div class="topbar">
   <button class="back-btn" onclick="location.href='index.html'">←</button>
   <span class="topbar-title">⚾ T座模式</span>
+  <span style="font-size:10px;color:#444;margin-left:4px;">v0.2.0</span>
   <span class="topbar-badge" id="step-badge">準備中</span>
 </div>
 
@@ -127,11 +128,11 @@
 <div class="data-row" id="data-row">
   <div class="data-card">
     <div class="data-card-title">擊球初速 / 仰角</div>
-    <canvas id="angleCanvas" class="mini" width="200" height="120"></canvas>
+    <canvas id="angleCanvas" class="mini" width="160" height="160"></canvas>
   </div>
   <div class="data-card">
     <div class="data-card-title">預測落點</div>
-    <canvas id="fieldCanvas" class="mini" width="200" height="120"></canvas>
+    <canvas id="fieldCanvas" class="mini" width="160" height="160"></canvas>
   </div>
 </div>
 

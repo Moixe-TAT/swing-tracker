@@ -5,92 +5,87 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>T座模式</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0a0a0a; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding-bottom: 40px; }
-
-  .topbar { display: flex; align-items: center; width: 100%; max-width: 480px; padding: 14px; gap: 10px; }
-  .back-btn { background: #1a1a1a; border: none; color: #fff; width: 36px; height: 36px; border-radius: 10px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-  .topbar-title { font-size: 16px; font-weight: 600; }
-  .topbar-badge { margin-left: auto; background: #1a1a1a; border-radius: 20px; padding: 4px 12px; font-size: 12px; color: #888; }
-
-  #container { position: relative; width: 100%; max-width: 480px; }
-  video { width: 100%; display: block; }
-  canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-  .rec-indicator { position: absolute; top: 10px; right: 10px; background: rgba(239,68,68,0.85); color: #fff; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; display: none; align-items: center; gap: 6px; }
-  .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: blink 0.8s infinite; }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
-  .countdown { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); color: #fff; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 20px; display: none; }
-
-  .status-bar { width: 100%; max-width: 480px; padding: 10px 14px 4px; }
-  .status-text { font-size: 13px; color: #f59e0b; min-height: 20px; }
-
-  .detect-row { display: flex; gap: 8px; width: 100%; max-width: 480px; padding: 0 14px 6px; }
-  .detect-item { flex: 1; background: #1a1a1a; border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #555; transition: all 0.3s; }
-  .detect-item.ok { background: #0f2e1a; color: #22c55e; }
-  .detect-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; flex-shrink: 0; transition: all 0.3s; }
-  .detect-item.ok .detect-dot { background: #22c55e; }
-
-  .gyro-btn-wrap { width: 100%; max-width: 480px; padding: 0 14px 10px; }
-  .gyro-btn { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #333; background: #1a1a1a; color: #f59e0b; font-size: 13px; cursor: pointer; }
-  .gyro-btn:disabled { color: #22c55e; opacity: 1; }
-
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; max-width: 480px; padding: 0 14px; }
-  .stat { background: #1a1a1a; border-radius: 10px; padding: 12px; text-align: center; }
-  .stat-label { font-size: 11px; color: #666; margin-bottom: 4px; }
-  .stat-value { font-size: 20px; font-weight: 500; }
-  .stat-unit { font-size: 11px; color: #666; }
-
-  .control-row { display: flex; gap: 10px; width: 100%; max-width: 480px; padding: 10px 14px; align-items: center; }
-  .lr-toggle { display: flex; background: #1a1a1a; border-radius: 10px; overflow: hidden; border: 1px solid #2a2a2a; flex-shrink: 0; }
-  .lr-btn { padding: 10px 16px; border: none; background: transparent; color: #555; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-  .lr-btn.active { background: #fff; color: #000; }
-  .btns { display: flex; gap: 8px; flex: 1; }
-  button.main { flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; background: #fff; color: #000; transition: all 0.2s; }
-  button.main:disabled { opacity: 0.35; cursor: not-allowed; }
-  button.main.ready { background: #22c55e; color: #fff; }
-  button.main.recording { background: #ef4444; color: #fff; }
-  button.sub { padding: 12px 16px; border-radius: 10px; border: none; font-size: 13px; cursor: pointer; background: #1a1a1a; color: #fff; }
-
-  .list-section { width: 100%; max-width: 480px; padding: 4px 14px 0; }
-  .list-title { font-size: 13px; color: #666; font-weight: 500; margin-bottom: 10px; }
-  .swing-list { display: flex; flex-direction: column; gap: 8px; }
-
-  .swing-item { background: #1a1a1a; border-radius: 12px; overflow: hidden; }
-  .swing-item.empty { opacity: 0.3; }
-  .swing-header { display: flex; align-items: center; gap: 10px; padding: 14px; }
-  .swing-num { background: #2a2a2a; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #555; flex-shrink: 0; }
-  .swing-item.filled .swing-num { background: #fff; color: #000; }
-  .swing-stats-row { display: flex; gap: 14px; flex: 1; }
-  .swing-stat { display: flex; flex-direction: column; }
-  .swing-stat-label { font-size: 10px; color: #555; }
-  .swing-stat-value { font-size: 14px; font-weight: 600; color: #444; }
-  .swing-item.filled .swing-stat-value { color: #fff; }
-  .swing-expand-btn { background: none; border: none; color: #555; font-size: 18px; cursor: pointer; padding: 0 4px; }
-  .swing-item.filled .swing-expand-btn { color: #888; }
-
-  .swing-actions { display: flex; gap: 8px; padding: 0 14px 14px; }
-  .play-btn { flex: 1; padding: 8px; border-radius: 8px; border: none; background: #252525; color: #888; font-size: 13px; cursor: pointer; }
-  .swing-item.filled .play-btn { color: #fff; }
-  .dl-btn { flex: 1; padding: 8px; border-radius: 8px; border: none; background: #252525; color: #444; font-size: 13px; cursor: pointer; }
-  .swing-item.filled .dl-btn { color: #3b82f6; }
-
-  .swing-detail { display: none; border-top: 1px solid #252525; padding: 14px; }
-  .swing-detail.show { display: block; }
-  .detail-title { font-size: 11px; color: #555; margin-bottom: 10px; }
-  .detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .detail-card { background: #252525; border-radius: 8px; padding: 10px; text-align: center; }
-  .detail-card-label { font-size: 10px; color: #666; margin-bottom: 4px; }
-  .detail-card-value { font-size: 16px; font-weight: 600; color: #fff; }
-  .detail-card-unit { font-size: 10px; color: #555; }
-
-  .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 99; padding: 20px; }
-  .modal.show { display: flex; }
-  .modal-box { background: #1a1a1a; border-radius: 16px; padding: 16px; width: 100%; max-width: 440px; }
-  .modal-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-  .modal-title { font-size: 15px; font-weight: 600; }
-  .modal-close { background: #333; border: none; color: #fff; width: 30px; height: 30px; border-radius: 8px; font-size: 16px; cursor: pointer; }
-  .modal-video { width: 100%; border-radius: 10px; background: #000; }
-  .modal-dl { width: 100%; margin-top: 10px; padding: 12px; border-radius: 10px; border: none; background: #3b82f6; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0a; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding-bottom: 40px; }
+.topbar { display: flex; align-items: center; width: 100%; max-width: 480px; padding: 14px; gap: 10px; }
+.back-btn { background: #1a1a1a; border: none; color: #fff; width: 36px; height: 36px; border-radius: 10px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.topbar-title { font-size: 16px; font-weight: 600; }
+.topbar-badge { margin-left: auto; background: #1a1a1a; border-radius: 20px; padding: 4px 12px; font-size: 12px; color: #888; }
+#container { position: relative; width: 100%; max-width: 480px; }
+video { width: 100%; display: block; }
+canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.rec-indicator { position: absolute; top: 10px; right: 10px; background: rgba(239,68,68,0.85); color: #fff; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; display: none; align-items: center; gap: 6px; }
+.rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: blink 0.8s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+.countdown { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); color: #fff; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 20px; display: none; }
+.status-bar { width: 100%; max-width: 480px; padding: 10px 14px 4px; }
+.status-text { font-size: 13px; color: #f59e0b; min-height: 20px; }
+.detect-row { display: flex; gap: 8px; width: 100%; max-width: 480px; padding: 0 14px 6px; }
+.detect-item { flex: 1; background: #1a1a1a; border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #555; transition: all 0.3s; }
+.detect-item.ok { background: #0f2e1a; color: #22c55e; }
+.detect-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; flex-shrink: 0; transition: all 0.3s; }
+.detect-item.ok .detect-dot { background: #22c55e; }
+.gyro-btn-wrap { width: 100%; max-width: 480px; padding: 0 14px 10px; display: flex; gap: 8px; }
+.gyro-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #333; background: #1a1a1a; color: #f59e0b; font-size: 13px; cursor: pointer; }
+.gyro-btn:disabled { color: #22c55e; opacity: 1; }
+.recal-btn { padding: 10px 14px; border-radius: 10px; border: 1px solid #333; background: #1a1a1a; color: #888; font-size: 13px; cursor: pointer; display: none; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; max-width: 480px; padding: 0 14px; }
+.stat { background: #1a1a1a; border-radius: 10px; padding: 12px; text-align: center; }
+.stat-label { font-size: 11px; color: #666; margin-bottom: 4px; }
+.stat-value { font-size: 20px; font-weight: 500; }
+.stat-unit { font-size: 11px; color: #666; }
+.control-row { display: flex; gap: 10px; width: 100%; max-width: 480px; padding: 10px 14px; align-items: center; }
+.lr-toggle { display: flex; background: #1a1a1a; border-radius: 10px; overflow: hidden; border: 1px solid #2a2a2a; flex-shrink: 0; }
+.lr-btn { padding: 10px 16px; border: none; background: transparent; color: #555; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.lr-btn.active { background: #fff; color: #000; }
+.btns { display: flex; gap: 8px; flex: 1; }
+button.main { flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; background: #fff; color: #000; transition: all 0.2s; }
+button.main:disabled { opacity: 0.35; cursor: not-allowed; }
+button.main.ready { background: #22c55e; color: #fff; }
+button.main.recording { background: #ef4444; color: #fff; }
+button.sub { padding: 12px 16px; border-radius: 10px; border: none; font-size: 13px; cursor: pointer; background: #1a1a1a; color: #fff; }
+.list-section { width: 100%; max-width: 480px; padding: 4px 14px 0; }
+.list-title { font-size: 13px; color: #666; font-weight: 500; margin-bottom: 10px; }
+.swing-list { display: flex; flex-direction: column; gap: 8px; }
+.swing-item { background: #1a1a1a; border-radius: 12px; overflow: hidden; }
+.swing-item.empty { opacity: 0.3; }
+.swing-header { display: flex; align-items: center; gap: 10px; padding: 14px; }
+.swing-num { background: #2a2a2a; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #555; flex-shrink: 0; }
+.swing-item.filled .swing-num { background: #fff; color: #000; }
+.swing-stats-row { display: flex; gap: 14px; flex: 1; }
+.swing-stat { display: flex; flex-direction: column; }
+.swing-stat-label { font-size: 10px; color: #555; }
+.swing-stat-value { font-size: 14px; font-weight: 600; color: #444; }
+.swing-item.filled .swing-stat-value { color: #fff; }
+.swing-expand-btn { background: none; border: none; color: #555; font-size: 18px; cursor: pointer; padding: 0 4px; }
+.swing-item.filled .swing-expand-btn { color: #888; }
+.swing-actions { display: flex; gap: 8px; padding: 0 14px 14px; }
+.play-btn { flex: 1; padding: 8px; border-radius: 8px; border: none; background: #252525; color: #888; font-size: 13px; cursor: pointer; }
+.swing-item.filled .play-btn { color: #fff; }
+.dl-btn { flex: 1; padding: 8px; border-radius: 8px; border: none; background: #252525; color: #444; font-size: 13px; cursor: pointer; }
+.swing-item.filled .dl-btn { color: #3b82f6; }
+.swing-detail { display: none; border-top: 1px solid #252525; padding: 14px; }
+.swing-detail.show { display: block; }
+.detail-title { font-size: 11px; color: #555; margin-bottom: 10px; }
+.detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.detail-card { background: #252525; border-radius: 8px; padding: 10px; text-align: center; }
+.detail-card-label { font-size: 10px; color: #666; margin-bottom: 4px; }
+.detail-card-value { font-size: 16px; font-weight: 600; color: #fff; }
+.detail-card-unit { font-size: 10px; color: #555; }
+.detail-card.green  { background: #0f2e1a; }
+.detail-card.green .detail-card-value { color: #22c55e; }
+.detail-card.yellow { background: #2a2010; }
+.detail-card.yellow .detail-card-value { color: #f59e0b; }
+.detail-card.red    { background: #2a1010; }
+.detail-card.red .detail-card-value   { color: #ef4444; }
+.modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 99; padding: 20px; }
+.modal.show { display: flex; }
+.modal-box { background: #1a1a1a; border-radius: 16px; padding: 16px; width: 100%; max-width: 440px; }
+.modal-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.modal-title { font-size: 15px; font-weight: 600; }
+.modal-close { background: #333; border: none; color: #fff; width: 30px; height: 30px; border-radius: 8px; font-size: 16px; cursor: pointer; }
+.modal-video { width: 100%; border-radius: 10px; background: #000; }
+.modal-dl { width: 100%; margin-top: 10px; padding: 12px; border-radius: 10px; border: none; background: #3b82f6; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -98,6 +93,7 @@
 <div class="topbar">
   <button class="back-btn" onclick="location.href='index.html'">←</button>
   <span class="topbar-title">⚾ T座模式</span>
+  <span style="font-size:10px;color:#888;margin-left:4px;">v0.3.0</span>
   <span class="topbar-badge" id="step-badge">準備中</span>
 </div>
 
@@ -119,6 +115,7 @@
 
 <div class="gyro-btn-wrap" id="gyro-btn-wrap">
   <button class="gyro-btn" id="gyro-btn" onclick="requestGyro()">📱 啟用水平感應（iPhone請點此）</button>
+  <button class="recal-btn" id="recal-btn" onclick="recalibrate()">🔄 重校</button>
 </div>
 
 <div class="stats">
@@ -157,78 +154,177 @@
 <script type="module">
 import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
 
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const status = document.getElementById('status');
+const video   = document.getElementById('video');
+const canvas  = document.getElementById('canvas');
+const ctx     = canvas.getContext('2d');
+const status  = document.getElementById('status');
 const mainBtn = document.getElementById('mainBtn');
 
 let poseLandmarker = null;
-let phase = 1;
-let tracking = false;
-let animId = null;
+let phase     = 1;
+let tracking  = false;
+let animId    = null;
 let handedness = 'right';
+let stableBallFrames = 0;
+let lastBall  = null;
 
-// 陀螺儀
-let deviceTilt = 0;
-let levelOK = false, levelConfidence = 0;
-let gyroEnabled = false;
+// ── 陀螺儀（新版 PRO 系統） ──────────────────────────────
+let gyroEnabled    = false;
+let rawTilt        = 0;       // 裝置原始 gamma
+let smoothTilt     = 0;       // 低通濾波後
+let manualOffset   = 0;       // 玩家手動校正值
+let driftCorrection = 0;      // 漂移補正
+let levelOK        = false;
+let levelConfidence = 0;
 
-// 球偵測
-let ballOK = false, ballConfidence = 0;
-let ballPos = null;
+// ── 球偵測 ────────────────────────────────────────────────
+let ballOK         = false;
+let ballConfidence = 0;
+let ballPos        = null;
 
-// 揮棒
+// ── 揮棒 ──────────────────────────────────────────────────
 let trail = [], lastWrist = null, maxSpeed = 0;
 let swingDetected = false;
 let finalVelo = 0, finalAngle = 0, finalDist = 0;
+let hitPoint = '—', hitType = '—', swingScore = 0;
 
-// 身體追蹤
+// ── 身體追蹤 ──────────────────────────────────────────────
 let headPositions = [], hipPositions = [], anklePositions = [];
 
-// 錄影
+// ── 錄影 ──────────────────────────────────────────────────
 let isRecording = false, mediaRecorder = null, recordedChunks = [];
 let countdownInterval = null;
 
-// 列表
+// ── 列表 ──────────────────────────────────────────────────
 let swingRecords = [];
-let totalSlots = 5;
+let totalSlots   = 5;
 
-// 陀螺儀
+// ─────────────────────────────────────────────────────────
+//  陀螺儀事件
+// ─────────────────────────────────────────────────────────
 function handleOrientation(e) {
-  deviceTilt = e.gamma || 0;
+  rawTilt = e.gamma || 0;
 }
 
-window.requestGyro = function() {
-  if (typeof DeviceOrientationEvent !== 'undefined' &&
-      typeof DeviceOrientationEvent.requestPermission === 'function') {
-    DeviceOrientationEvent.requestPermission().then(state => {
-      if (state === 'granted') {
-        window.addEventListener('deviceorientation', handleOrientation);
-        gyroEnabled = true;
-        const btn = document.getElementById('gyro-btn');
-        btn.textContent = '✅ 水平感應已啟用';
-        btn.disabled = true;
+// ─────────────────────────────────────────────────────────
+//  啟用陀螺儀
+// ─────────────────────────────────────────────────────────
+window.requestGyro = async function () {
+  try {
+    if (
+      typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function'
+    ) {
+      const permission = await DeviceOrientationEvent.requestPermission();
+      if (permission !== 'granted') {
+        status.textContent = '❌ 未允許陀螺儀';
+        return;
       }
-    }).catch(() => {
-      status.textContent = '⚠️ 無法取得陀螺儀權限';
-    });
-  } else {
+    }
+
     window.addEventListener('deviceorientation', handleOrientation);
     gyroEnabled = true;
+
     const btn = document.getElementById('gyro-btn');
     btn.textContent = '✅ 水平感應已啟用';
     btn.disabled = true;
+
+    // 顯示重校按鈕
+    document.getElementById('recal-btn').style.display = 'block';
+
+    status.textContent = '📐 請旋轉手機讓兩條線重疊，或點「重校」重新定義水平';
+  } catch (err) {
+    status.textContent = '⚠️ 陀螺儀初始化失敗';
   }
+};
+
+// ─────────────────────────────────────────────────────────
+//  手動重校（按鈕版，取代點擊 canvas）
+// ─────────────────────────────────────────────────────────
+window.recalibrate = function () {
+  if (!gyroEnabled) return;
+  manualOffset = -(smoothTilt + driftCorrection);
+  status.textContent = '✅ 已重新校正水平';
+};
+
+// ─────────────────────────────────────────────────────────
+//  水平線繪製（新版 PRO 系統）
+// ─────────────────────────────────────────────────────────
+function drawLevelSystem(cw, ch) {
+  const midY   = ch * 0.5;
+  const lineLen = cw * 0.82;
+
+  // 低通濾波
+  smoothTilt += (rawTilt - smoothTilt) * 0.08;
+
+  // 漂移補正慢速衰減
+  driftCorrection *= 0.999;
+
+  // 最終角度
+  const finalTilt = smoothTilt + manualOffset + driftCorrection;
+
+  // 水平判定（±2.2°）
+  const tiltOK = Math.abs(finalTilt) < 2.2;
+
+  // 穩定計數
+  if (tiltOK) levelConfidence = Math.min(levelConfidence + 1, 50);
+  else         levelConfidence = Math.max(levelConfidence - 1, 0);
+  levelOK = levelConfidence >= 50;
+
+  // 固定基準線（白色半透明）
+  ctx.save();
+  ctx.translate(cw / 2, midY);
+  ctx.beginPath();
+  ctx.moveTo(-lineLen / 2, 0);
+  ctx.lineTo( lineLen / 2, 0);
+  ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+  ctx.lineWidth = 7;
+  ctx.stroke();
+  ctx.restore();
+
+  // 動態水平線（跟著手機傾斜）
+  if (gyroEnabled) {
+    const rad    = finalTilt * Math.PI / 180;
+    const offset = Math.sin(rad) * lineLen * 0.5;
+
+    ctx.save();
+    ctx.translate(cw / 2, midY);
+    ctx.beginPath();
+    ctx.moveTo(-lineLen / 2,  offset);
+    ctx.lineTo( lineLen / 2, -offset);
+    ctx.strokeStyle  = tiltOK ? '#22c55e' : '#f59e0b';
+    ctx.lineWidth    = 4;
+    ctx.shadowBlur   = 12;
+    ctx.shadowColor  = tiltOK ? '#22c55e' : '#f59e0b';
+    ctx.stroke();
+    ctx.restore();
+  } else {
+    // 陀螺儀未啟用，清空穩定計數
+    levelConfidence = 0;
+  }
+
+  // 中央準星
+  ctx.beginPath();
+  ctx.arc(cw / 2, midY, 5, 0, Math.PI * 2);
+  ctx.fillStyle = (tiltOK && gyroEnabled) ? '#22c55e' : '#ffffff';
+  ctx.fill();
+
+  // 同步 UI
+  document.getElementById('detect-level').classList.toggle('ok', levelOK);
 }
 
-window.setHandedness = function(side) {
+// ─────────────────────────────────────────────────────────
+//  左右打
+// ─────────────────────────────────────────────────────────
+window.setHandedness = function (side) {
   handedness = side;
   document.getElementById('btn-right').classList.toggle('active', side === 'right');
   document.getElementById('btn-left').classList.toggle('active', side === 'left');
-}
+};
 
-// 列表
+// ─────────────────────────────────────────────────────────
+//  列表
+// ─────────────────────────────────────────────────────────
 function initList() {
   const list = document.getElementById('swing-list');
   list.innerHTML = '';
@@ -255,9 +351,9 @@ function makeEmptySlot() {
 }
 
 function fillSlot(record) {
-  const list = document.getElementById('swing-list');
+  const list  = document.getElementById('swing-list');
   const slots = list.querySelectorAll('.swing-item');
-  const idx = record.num - 1;
+  const idx   = record.num - 1;
   if (slots[idx]) {
     slots[idx].className = 'swing-item filled';
     slots[idx].innerHTML = `
@@ -275,19 +371,25 @@ function fillSlot(record) {
         <button class="dl-btn" onclick="downloadRecord(${idx})">⬇ 下載</button>
       </div>
       <div class="swing-detail" id="detail-${idx}">
-        <div class="detail-title">身體動作數據</div>
+        <div class="detail-title">身體動作</div>
+        <div class="detail-grid" style="margin-bottom:8px">
+          <div class="detail-card"><div class="detail-card-label">頭部移動</div><div class="detail-card-value">${record.headMove}<span class="detail-card-unit"> px</span></div></div>
+          <div class="detail-card"><div class="detail-card-label">重心位移</div><div class="detail-card-value">${record.hipMove}<span class="detail-card-unit"> px</span></div></div>
+          <div class="detail-card"><div class="detail-card-label">跨步幅度</div><div class="detail-card-value">${record.ankleSpan}<span class="detail-card-unit"> px</span></div></div>
+        </div>
+        <div class="detail-title">揮棒分析</div>
         <div class="detail-grid">
-          <div class="detail-card">
-            <div class="detail-card-label">頭部移動</div>
-            <div class="detail-card-value">${record.headMove}<span class="detail-card-unit"> px</span></div>
+          <div class="detail-card ${record.swingScore >= 80 ? 'green' : record.swingScore >= 60 ? 'yellow' : 'red'}">
+            <div class="detail-card-label">揮棒評分</div>
+            <div class="detail-card-value">${record.swingScore}<span class="detail-card-unit"> 分</span></div>
           </div>
-          <div class="detail-card">
-            <div class="detail-card-label">重心位移</div>
-            <div class="detail-card-value">${record.hipMove}<span class="detail-card-unit"> px</span></div>
+          <div class="detail-card ${record.hitPoint === 'Perfect' ? 'green' : record.hitPoint === '—' ? '' : 'yellow'}">
+            <div class="detail-card-label">擊球時機</div>
+            <div class="detail-card-value" style="font-size:13px">${record.hitPoint}</div>
           </div>
-          <div class="detail-card">
-            <div class="detail-card-label">跨步幅度</div>
-            <div class="detail-card-value">${record.ankleSpan}<span class="detail-card-unit"> px</span></div>
+          <div class="detail-card ${record.hitType === 'Center' ? 'green' : record.hitType === '—' ? '' : 'yellow'}">
+            <div class="detail-card-label">打擊方向</div>
+            <div class="detail-card-value" style="font-size:13px">${record.hitType}</div>
           </div>
         </div>
       </div>`;
@@ -296,46 +398,50 @@ function fillSlot(record) {
   totalSlots++;
 }
 
-window.toggleDetail = function(idx) {
+window.toggleDetail = function (idx) {
   const d = document.getElementById(`detail-${idx}`);
   if (d) d.classList.toggle('show');
-}
+};
 
-// 球偵測：白色 + 圓形
+// ─────────────────────────────────────────────────────────
+//  球偵測
+// ─────────────────────────────────────────────────────────
 function detectWhiteBall(imageData, cw, ch) {
-  const cx = cw/2, cy = ch/2;
-  const searchR = Math.min(cw,ch)*0.3;
-  const data = imageData.data;
+  const cx = cw / 2, cy = ch / 2;
+  const baseR = Math.min(cw, ch) * 0.22;
+  const data  = imageData.data;
   let count = 0, bx = 0, by = 0;
   let minX = cw, maxX = 0, minY = ch, maxY = 0;
 
-  for (let y = cy-searchR; y < cy+searchR; y += 3) {
-    for (let x = cx-searchR; x < cx+searchR; x += 3) {
-      const xi = Math.floor(x), yi = Math.floor(y);
+  for (let y = cy - baseR; y < cy + baseR; y += 2) {
+    for (let x = cx - baseR; x < cx + baseR; x += 2) {
+      const xi = x|0, yi = y|0;
       if (xi < 0 || yi < 0 || xi >= cw || yi >= ch) continue;
-      const i = (yi*cw + xi)*4;
+      const i = (yi * cw + xi) * 4;
       const r = data[i], g = data[i+1], b = data[i+2];
-      const isWhite = r > 190 && g > 190 && b > 190
-                   && Math.max(r,g,b) - Math.min(r,g,b) < 45;
-      const dist = Math.sqrt((x-cx)**2+(y-cy)**2);
-      if (isWhite && dist < searchR) {
-        count++; bx+=x; by+=y;
-        if (x < minX) minX=x; if (x > maxX) maxX=x;
-        if (y < minY) minY=y; if (y > maxY) maxY=y;
-      }
+      const brightness = (r + g + b) / 3;
+      const isWhite = brightness > 200 && Math.max(r,g,b) - Math.min(r,g,b) < 35;
+      if (!isWhite) continue;
+      count++; bx += x; by += y;
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
     }
   }
 
-  if (count < 15) return { x: cx, y: cy, found: false };
-
-  // 圓形判斷：寬高比接近 1
+  if (count < 25) return { found: false };
   const w = maxX - minX, h = maxY - minY;
-  const ratio = w > 0 && h > 0 ? Math.min(w,h)/Math.max(w,h) : 0;
-  if (ratio < 0.55) return { x: cx, y: cy, found: false };
+  if (!w || !h) return { found: false };
+  const roundness = Math.min(w,h) / Math.max(w,h);
+  const density   = count / (w * h);
+  if (roundness < 0.65) return { found: false };
+  if (density   < 0.08) return { found: false };
 
-  return { x: bx/count, y: by/count, found: true };
+  return { found: true, x: bx / count, y: by / count };
 }
 
+// ─────────────────────────────────────────────────────────
+//  相機 & MediaPipe 初始化
+// ─────────────────────────────────────────────────────────
 async function startCamera() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -343,7 +449,7 @@ async function startCamera() {
     });
     video.srcObject = stream;
     await new Promise(r => video.onloadedmetadata = r);
-    canvas.width = video.videoWidth;
+    canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
   } catch(e) {
     status.textContent = '⚠️ 無法開啟鏡頭，請允許相機權限';
@@ -371,6 +477,9 @@ async function init() {
   }
 }
 
+// ─────────────────────────────────────────────────────────
+//  錄影
+// ─────────────────────────────────────────────────────────
 function startRecording() {
   try {
     recordedChunks = [];
@@ -379,9 +488,8 @@ function startRecording() {
     mediaRecorder.start();
     isRecording = true;
     document.getElementById('rec-indicator').style.display = 'flex';
-    document.getElementById('detect-row').style.display = 'none';
+    document.getElementById('detect-row').style.display    = 'none';
     document.getElementById('gyro-btn-wrap').style.display = 'none';
-
     let secs = 6;
     const cd = document.getElementById('countdown');
     cd.style.display = 'block';
@@ -424,213 +532,254 @@ function calcBodyMetrics() {
   return { headMove, hipMove, ankleSpan };
 }
 
+function calculateSwingScore(headMove, hipMove) {
+  let score = 100;
+
+  // 頭部穩定（扣分）
+  score -= Math.min(headMove * 0.35, 25);
+
+  // 重心轉移（加分）
+  score += Math.min(hipMove * 0.15, 15);
+
+  // 揮棒速度（加分）
+  score += Math.min(finalVelo * 0.25, 20);
+
+  // 軌跡平順（加分）
+  let smoothness = 100;
+  if (trail.length > 5) {
+    let jitter = 0;
+    for (let i = 2; i < trail.length; i++) {
+      const a1 = Math.atan2(trail[i-1].y - trail[i-2].y, trail[i-1].x - trail[i-2].x);
+      const a2 = Math.atan2(trail[i].y   - trail[i-1].y, trail[i].x   - trail[i-1].x);
+      jitter += Math.abs(a2 - a1);
+    }
+    smoothness = Math.max(0, 100 - jitter * 18);
+  }
+  score += smoothness * 0.15;
+
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
 function saveRecord() {
   const blob = new Blob(recordedChunks, { type: 'video/webm' });
-  const url = URL.createObjectURL(blob);
-  const num = swingRecords.length + 1;
+  const url  = URL.createObjectURL(blob);
+  const num  = swingRecords.length + 1;
   const body = calcBodyMetrics();
-  const record = { num, velo: finalVelo, angle: finalAngle, dist: finalDist, ...body, url, blob };
+  const { headMove, hipMove, ankleSpan } = body;
+
+  // Hit Point & Hit Type（使用 phase 1 鎖定的 ballPos）
+  if (ballPos && finalVelo > 0) {
+    const diff = lastWrist ? (lastWrist.x - ballPos.x) : 0;
+    const dir  = handedness === 'right' ? diff : -diff;
+    if      (dir < -40) { hitPoint = 'Early';   hitType = 'Pull';   }
+    else if (dir >  40) { hitPoint = 'Late';    hitType = 'Push';   }
+    else                { hitPoint = 'Perfect'; hitType = 'Center'; }
+  } else {
+    hitPoint = '—'; hitType = '—';
+  }
+
+  // Swing Quality Score
+  swingScore = calculateSwingScore(headMove, hipMove);
+
+  const record = {
+    num, velo: finalVelo, angle: finalAngle, dist: finalDist,
+    headMove, hipMove, ankleSpan,
+    hitPoint, hitType, swingScore,
+    url, blob
+  };
   swingRecords.push(record);
   fillSlot(record);
 
+  // 重置狀態
   trail = []; lastWrist = null; maxSpeed = 0; swingDetected = false;
   finalVelo = 0; finalAngle = 0; finalDist = 0;
+  hitPoint = '—'; hitType = '—'; swingScore = 0;
   headPositions = []; hipPositions = []; anklePositions = [];
   ballOK = false; levelOK = false; ballConfidence = 0; levelConfidence = 0;
   ballPos = null;
+  // 重置陀螺儀校正值（保留 gyroEnabled）
+  manualOffset = 0; driftCorrection = 0; smoothTilt = 0;
 
-  document.getElementById('detect-row').style.display = 'flex';
-  document.getElementById('gyro-btn-wrap').style.display = 'block';
+  document.getElementById('detect-row').style.display    = 'flex';
+  document.getElementById('gyro-btn-wrap').style.display = 'flex';
   document.getElementById('detect-ball').classList.remove('ok');
   document.getElementById('detect-level').classList.remove('ok');
   document.getElementById('step-badge').textContent = '準備中';
   mainBtn.textContent = '偵測中...';
-  mainBtn.disabled = true;
-  mainBtn.className = 'main';
+  mainBtn.disabled    = true;
+  mainBtn.className   = 'main';
   phase = 1;
   status.textContent = `✅ 第${num}次完成！重新校準後繼續`;
 }
 
-window.handleMain = function() {
+// ─────────────────────────────────────────────────────────
+//  按鈕控制
+// ─────────────────────────────────────────────────────────
+window.handleMain = function () {
   if (phase === 1 && ballOK && levelOK) {
     phase = 2;
     trail = []; lastWrist = null; maxSpeed = 0; swingDetected = false;
     headPositions = []; hipPositions = []; anklePositions = [];
     document.getElementById('step-badge').textContent = '揮棒中';
     mainBtn.textContent = '錄影中...';
-    mainBtn.disabled = true;
-    mainBtn.className = 'main recording';
-    status.textContent = '🔴 自動錄影，請揮棒！';
+    mainBtn.disabled    = true;
+    mainBtn.className   = 'main recording';
+    status.textContent  = '🔴 自動錄影，請揮棒！';
     startRecording();
   }
-}
+};
 
-window.resetAll = function() {
+window.resetAll = function () {
   phase = 1; tracking = false;
   ballOK = false; levelOK = false; ballConfidence = 0; levelConfidence = 0; ballPos = null;
+  rawTilt = 0; smoothTilt = 0; manualOffset = 0; driftCorrection = 0;
   trail = []; lastWrist = null; maxSpeed = 0; swingDetected = false;
   headPositions = []; hipPositions = []; anklePositions = [];
   if (isRecording) stopRecording();
   cancelAnimationFrame(animId);
-  document.getElementById('detect-row').style.display = 'flex';
-  document.getElementById('gyro-btn-wrap').style.display = 'block';
+  document.getElementById('detect-row').style.display    = 'flex';
+  document.getElementById('gyro-btn-wrap').style.display = 'flex';
   document.getElementById('detect-ball').classList.remove('ok');
   document.getElementById('detect-level').classList.remove('ok');
   document.getElementById('step-badge').textContent = '準備中';
-  document.getElementById('velo').innerHTML = '—<span class="stat-unit"> km/h</span>';
-  document.getElementById('angle').innerHTML = '—<span class="stat-unit">°</span>';
+  document.getElementById('velo').innerHTML     = '—<span class="stat-unit"> km/h</span>';
+  document.getElementById('angle').innerHTML    = '—<span class="stat-unit">°</span>';
   document.getElementById('distance').innerHTML = '—<span class="stat-unit"> m</span>';
   mainBtn.textContent = '偵測中...';
-  mainBtn.disabled = true;
-  mainBtn.className = 'main';
+  mainBtn.disabled    = true;
+  mainBtn.className   = 'main';
   swingRecords = []; totalSlots = 5;
   initList();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   status.textContent = '✅ 已重置';
   tracking = true;
   loop();
-}
+};
 
-window.playRecord = function(index) {
+window.playRecord = function (index) {
   const record = swingRecords[index];
   document.getElementById('modal-title').textContent = `第${record.num}次揮棒`;
   const mv = document.getElementById('modal-video');
   mv.src = record.url; mv.play();
   document.getElementById('modal-dl-btn').onclick = () => downloadRecord(index);
   document.getElementById('modal').classList.add('show');
-}
+};
 
-window.downloadRecord = function(index) {
+window.downloadRecord = function (index) {
   const a = document.createElement('a');
-  a.href = swingRecords[index].url;
+  a.href     = swingRecords[index].url;
   a.download = `揮棒第${swingRecords[index].num}次.webm`;
   a.click();
-}
+};
 
-window.closeModal = function() {
+window.closeModal = function () {
   document.getElementById('modal-video').pause();
   document.getElementById('modal').classList.remove('show');
-}
+};
 
+// ─────────────────────────────────────────────────────────
+//  顏色輔助
+// ─────────────────────────────────────────────────────────
 function getColor(speed) {
-  if (speed < 8) return '#3b82f6';
+  if (speed < 8)  return '#3b82f6';
   if (speed < 20) return '#f59e0b';
   return '#ef4444';
 }
 
+// ─────────────────────────────────────────────────────────
+//  主循環
+// ─────────────────────────────────────────────────────────
 function loop() {
   if (!tracking) return;
   if (video.readyState < 2) { animId = requestAnimationFrame(loop); return; }
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const cw = canvas.width, ch = canvas.height;
 
   if (phase === 1) {
-    // 球偵測
-    const tmp = document.createElement('canvas');
-    tmp.width = cw; tmp.height = ch;
+
+    // ── 球偵測 ──────────────────────────────────────────
+    const tmp  = document.createElement('canvas');
+    tmp.width  = cw; tmp.height = ch;
     const tCtx = tmp.getContext('2d');
     tCtx.drawImage(video, 0, 0, cw, ch);
     const imageData = tCtx.getImageData(0, 0, cw, ch);
     const ball = detectWhiteBall(imageData, cw, ch);
 
-    const tx = ball.found ? ball.x : cw/2;
-    const ty = ball.found ? ball.y : ch/2;
+    if (ball.found) stableBallFrames = Math.min(stableBallFrames + 1, 10);
+    else            stableBallFrames = Math.max(stableBallFrames - 2, 0);
+    const ballStable = stableBallFrames >= 3;
+
+    const tx = ball.found ? ball.x : cw / 2;
+    const ty = ball.found ? ball.y : ch / 2;
     if (!ballPos) ballPos = { x: tx, y: ty };
     ballPos.x += (tx - ballPos.x) * 0.12;
     ballPos.y += (ty - ballPos.y) * 0.12;
 
     // 紅色圓框
     ctx.beginPath();
-    ctx.arc(ballPos.x, ballPos.y, 34, 0, Math.PI*2);
+    ctx.arc(ballPos.x, ballPos.y, 34, 0, Math.PI * 2);
     ctx.strokeStyle = ball.found ? '#ef4444' : 'rgba(255,60,60,0.25)';
-    ctx.lineWidth = 3;
+    ctx.lineWidth   = 3;
     ctx.stroke();
 
-    if (ball.found) ballConfidence = Math.min(ballConfidence+1, 50);
-    else ballConfidence = Math.max(ballConfidence-1, 0);
+    if (ball.found) ballConfidence = Math.min(ballConfidence + 1, 50);
+    else            ballConfidence = Math.max(ballConfidence - 1, 0);
     const newBallOK = ballConfidence >= 50;
     if (newBallOK !== ballOK) {
       ballOK = newBallOK;
       document.getElementById('detect-ball').classList.toggle('ok', ballOK);
     }
 
-    // 陀螺儀水平線
-    const midY = ch * 0.5;
-    const lineLen = cw * 0.85;
-    const tiltRad = deviceTilt * Math.PI / 180;
-    const tiltOK = Math.abs(deviceTilt) < 3;
+    // ── 水平校準（新版 PRO） ────────────────────────────
+    drawLevelSystem(cw, ch);
 
-    // 固定基準線（白色半透明）
-    ctx.save();
-    ctx.translate(cw/2, midY);
-    ctx.beginPath();
-    ctx.moveTo(-lineLen/2, 0); ctx.lineTo(lineLen/2, 0);
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-    ctx.lineWidth = 6; ctx.stroke();
-    ctx.restore();
-
-    // 傾斜線（跟著手機動）
-    if (gyroEnabled) {
-      const offset = Math.sin(tiltRad) * lineLen / 2;
-      ctx.save();
-      ctx.translate(cw/2, midY);
-      ctx.beginPath();
-      ctx.moveTo(-lineLen/2, offset); ctx.lineTo(lineLen/2, -offset);
-      ctx.strokeStyle = tiltOK ? '#22c55e' : '#f59e0b';
-      ctx.lineWidth = 3; ctx.stroke();
-      ctx.restore();
-
-      if (tiltOK) levelConfidence = Math.min(levelConfidence+1, 50);
-      else levelConfidence = Math.max(levelConfidence-1, 0);
-    } else {
-      // 陀螺儀未啟用，水平永遠不過
-      levelConfidence = 0;
-    }
-
-    const newLevelOK = levelConfidence >= 50;
-    if (newLevelOK !== levelOK) {
-      levelOK = newLevelOK;
-      document.getElementById('detect-level').classList.toggle('ok', levelOK);
-    }
-
+    // ── 主按鈕狀態 ──────────────────────────────────────
     if (ballOK && levelOK) {
-      mainBtn.disabled = false;
+      mainBtn.disabled    = false;
       mainBtn.textContent = '✅ 開始揮棒';
-      mainBtn.className = 'main ready';
+      mainBtn.className   = 'main ready';
       document.getElementById('step-badge').textContent = '準備完成';
       status.textContent = '✅ 球與水平確認！點擊「開始揮棒」';
     } else {
-      mainBtn.disabled = true;
+      mainBtn.disabled    = true;
       mainBtn.textContent = '偵測中...';
-      mainBtn.className = 'main';
-      const b = Math.round(ballConfidence/50*100);
-      const l = gyroEnabled ? Math.round(levelConfidence/50*100) : 0;
-      status.textContent = `⚾ 球 ${b}%　📐 水平 ${l}%${!gyroEnabled ? '（請啟用感應）' : ''}`;
+      mainBtn.className   = 'main';
+      const b = Math.round(ballConfidence / 50 * 100);
+      const l = gyroEnabled ? Math.round(levelConfidence / 50 * 100) : 0;
+      if (!gyroEnabled) {
+        status.textContent = '📱 請啟用水平感應';
+      } else if (levelOK) {
+        status.textContent = `✅ 已水平 ⚾ 球 ${b}%`;
+      } else {
+        status.textContent = `📐 請讓兩條線重疊 ${l}% ⚾ 球 ${b}%`;
+      }
     }
 
   } else if (phase === 2) {
-    const now = performance.now();
+
+    const now     = performance.now();
     const results = poseLandmarker ? poseLandmarker.detectForVideo(video, now) : null;
 
     if (results && results.landmarks && results.landmarks.length > 0) {
-      const lm = results.landmarks[0];
+      const lm       = results.landmarks[0];
       const wristIdx = handedness === 'right' ? 16 : 15;
       const elbowIdx = handedness === 'right' ? 14 : 13;
       const wrist = lm[wristIdx], elbow = lm[elbowIdx];
-      const nose = lm[0];
-      const hipL = lm[23], hipR = lm[24];
+      const nose  = lm[0];
+      const hipL  = lm[23], hipR  = lm[24];
       const ankleL = lm[27], ankleR = lm[28];
 
-      if (nose) headPositions.push({ x: nose.x*cw, y: nose.y*ch });
-      if (hipL && hipR) hipPositions.push({ x: ((hipL.x+hipR.x)/2)*cw });
-      if (ankleL && ankleR) anklePositions.push({ lx: ankleL.x*cw, rx: ankleR.x*cw });
+      if (nose)         headPositions.push({ x: nose.x * cw, y: nose.y * ch });
+      if (hipL && hipR) hipPositions.push({ x: ((hipL.x + hipR.x) / 2) * cw });
+      if (ankleL && ankleR) anklePositions.push({ lx: ankleL.x * cw, rx: ankleR.x * cw });
 
       if (wrist) {
-        const wx = wrist.x*cw, wy = wrist.y*ch;
+        const wx = wrist.x * cw, wy = wrist.y * ch;
         let speed = 0;
         if (lastWrist) {
-          const dx = wx-lastWrist.x, dy = wy-lastWrist.y;
-          speed = Math.sqrt(dx*dx+dy*dy);
+          const dx = wx - lastWrist.x, dy = wy - lastWrist.y;
+          speed = Math.sqrt(dx * dx + dy * dy);
           if (speed > maxSpeed) maxSpeed = speed;
         }
         trail.push({ x: wx, y: wy, speed });
@@ -638,39 +787,44 @@ function loop() {
         lastWrist = { x: wx, y: wy };
 
         for (let i = 1; i < trail.length; i++) {
-          const t = trail[i], p = trail[i-1];
+          const t = trail[i], p = trail[i - 1];
           ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(t.x, t.y);
-          ctx.strokeStyle = getColor(t.speed);
-          ctx.lineWidth = t.speed > 20 ? 5 : 3;
-          ctx.globalAlpha = (i/trail.length)*0.85; ctx.stroke(); ctx.globalAlpha = 1;
+          ctx.strokeStyle  = getColor(t.speed);
+          ctx.lineWidth    = t.speed > 20 ? 5 : 3;
+          ctx.globalAlpha  = (i / trail.length) * 0.85;
+          ctx.stroke();
+          ctx.globalAlpha  = 1;
         }
 
-        ctx.beginPath(); ctx.arc(wx, wy, 7, 0, Math.PI*2);
-        ctx.fillStyle = getColor(speed); ctx.fill();
+        ctx.beginPath();
+        ctx.arc(wx, wy, 7, 0, Math.PI * 2);
+        ctx.fillStyle = getColor(speed);
+        ctx.fill();
 
         if (speed > 20 && !swingDetected) {
           swingDetected = true;
-          ctx.beginPath(); ctx.arc(wx, wy, 22, 0, Math.PI*2);
+          ctx.beginPath(); ctx.arc(wx, wy, 22, 0, Math.PI * 2);
           ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2.5;
           ctx.globalAlpha = 0.8; ctx.stroke(); ctx.globalAlpha = 1;
         }
 
         let launchAngle = 0;
         if (elbow) {
-          const ex = elbow.x*cw, ey = elbow.y*ch;
-          launchAngle = Math.round(Math.atan2(ey-wy, wx-ex)*180/Math.PI);
+          const ex = elbow.x * cw, ey = elbow.y * ch;
+          launchAngle = Math.round(Math.atan2(ey - wy, wx - ex) * 180 / Math.PI);
         }
 
-        const kmh = Math.round(maxSpeed * 60 * 0.005 * 3.6);
-        const rad = Math.abs(launchAngle)*Math.PI/180;
+        const kmh  = Math.round(maxSpeed * 60 * 0.005 * 3.6);
+        const rad  = Math.abs(launchAngle) * Math.PI / 180;
         const v0ms = maxSpeed * 60 * 0.005;
-        const dist = Math.round((v0ms*v0ms*Math.sin(2*rad))/9.8);
+        const dist = Math.round((v0ms * v0ms * Math.sin(2 * rad)) / 9.8);
 
         finalVelo = kmh; finalAngle = launchAngle; finalDist = dist;
 
-        document.getElementById('velo').innerHTML = `${kmh}<span class="stat-unit"> km/h</span>`;
-        document.getElementById('angle').innerHTML = `${launchAngle}<span class="stat-unit">°</span>`;
+        document.getElementById('velo').innerHTML     = `${kmh}<span class="stat-unit"> km/h</span>`;
+        document.getElementById('angle').innerHTML    = `${launchAngle}<span class="stat-unit">°</span>`;
         document.getElementById('distance').innerHTML = `${dist > 0 ? dist : '—'}<span class="stat-unit">${dist > 0 ? ' m' : ''}</span>`;
+
         status.textContent = speed > 20 ? '🔴 擊球！' : speed > 8 ? '🟡 加速中' : '🔵 準備期';
       }
     }
@@ -679,6 +833,9 @@ function loop() {
   animId = requestAnimationFrame(loop);
 }
 
+// ─────────────────────────────────────────────────────────
+//  啟動
+// ─────────────────────────────────────────────────────────
 initList();
 await startCamera();
 await init();

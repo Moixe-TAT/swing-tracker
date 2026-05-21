@@ -34,14 +34,15 @@
     transition: transform 0.1s, opacity 0.1s;
   }
   .btn:active { transform: scale(0.97); opacity: 0.85; }
-  .btn-tee { background: #fff; color: #000; }
-  .btn-toss { background: #1a1a1a; color: #fff; border: 1px solid #333; }
+  .btn-buffer { background: #fff; color: #000; }
+  .btn-video { background: #1a1a1a; color: #fff; border: 1px solid #333; }
+  .btn-screen { background: #1a1a1a; color: #fff; border: 1px solid #333; }
   .btn-live { background: #1a1a1a; color: #fff; border: 1px solid #333; }
   .btn-icon { font-size: 24px; }
   .btn-text { display: flex; flex-direction: column; align-items: flex-start; }
   .btn-title { font-size: 16px; font-weight: 600; }
   .btn-desc { font-size: 11px; color: #888; margin-top: 2px; }
-  .btn-tee .btn-desc { color: #555; }
+  .btn-buffer .btn-desc { color: #555; }
 
   /* 彈窗 */
   .modal {
@@ -73,27 +74,27 @@
 <p class="sub">選擇打擊模式</p>
 
 <div class="btn-group">
-  <button class="btn btn-tee" onclick="location.href='tee.html'">
-    <span class="btn-icon">🪝</span>
+  <button class="btn btn-buffer" onclick="location.href='/BufferRecord.html'">
+    <span class="btn-icon">🔁</span>
     <div class="btn-text">
-      <span class="btn-title">T座模式</span>
+      <span class="btn-title">循環錄影模式</span>
       <span class="btn-desc">球放置於T座，分析揮棒動作</span>
     </div>
   </button>
 
-  <button class="btn btn-toss" onclick="showModal()">
-    <span class="btn-icon">🤾</span>
+  <button class="btn btn-video" onclick="location.href='/VideoRecord.html'">
+    <span class="btn-icon">🎥</span>
     <div class="btn-text">
-      <span class="btn-title">拋球模式</span>
-      <span class="btn-desc">自行拋球後揮棒</span>
+      <span class="btn-title">手動錄影模式</span>
+      <span class="btn-desc">球放置於T座，分析揮棒動作</span>
     </div>
   </button>
 
-  <button class="btn btn-live" onclick="showModal()">
+  <button class="btn btn-screen" onclick="showModal()">
     <span class="btn-icon">⚡</span>
     <div class="btn-text">
-      <span class="btn-title">對決模式</span>
-      <span class="btn-desc">投手投球對決</span>
+      <span class="btn-title">揮棒截圖模式</span>
+      <span class="btn-desc">球放置於T座，分析揮棒動作</span>
     </div>
   </button>
 </div>

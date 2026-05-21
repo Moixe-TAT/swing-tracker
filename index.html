@@ -4,8 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>揮棒分析</title>
+
+<!-- ═══════════════════════════════════════════════════════
+     BLOCK 1：CSS 樣式
+     （不用動）
+     ═══════════════════════════════════════════════════════ -->
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+
   body {
     background: #0a0a0a;
     color: #fff;
@@ -17,10 +23,16 @@
     min-height: 100vh;
     padding: 24px;
   }
+
+  /* 標題區 */
   .logo { font-size: 48px; margin-bottom: 12px; }
   h1 { font-size: 22px; font-weight: 600; letter-spacing: 3px; margin-bottom: 6px; }
   .sub { font-size: 13px; color: #666; margin-bottom: 48px; letter-spacing: 1px; }
+
+  /* 按鈕群組 */
   .btn-group { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 320px; }
+
+  /* 按鈕基本樣式 */
   .btn {
     padding: 18px;
     border-radius: 14px;
@@ -34,17 +46,24 @@
     transition: transform 0.1s, opacity 0.1s;
   }
   .btn:active { transform: scale(0.97); opacity: 0.85; }
-  .btn-buffer { background: #fff; color: #000; }
-  .btn-video { background: #1a1a1a; color: #fff; border: 1px solid #333; }
-  .btn-screen { background: #1a1a1a; color: #fff; border: 1px solid #333; }
-  .btn-live { background: #1a1a1a; color: #fff; border: 1px solid #333; }
+
+  /* ── 各按鈕顏色 ──
+     白色 = 主要模式（最常用）
+     深色 = 次要模式               */
+  .btn-buffer { background: #fff; color: #000; }                              /* 循環錄影 */
+  .btn-video  { background: #1a1a1a; color: #fff; border: 1px solid #333; }  /* 手動錄影 */
+  .btn-screen { background: #1a1a1a; color: #fff; border: 1px solid #333; }  /* 揮棒截圖 */
+
+  /* 按鈕內部元素 */
   .btn-icon { font-size: 24px; }
   .btn-text { display: flex; flex-direction: column; align-items: flex-start; }
   .btn-title { font-size: 16px; font-weight: 600; }
   .btn-desc { font-size: 11px; color: #888; margin-top: 2px; }
+
+  /* 白底按鈕的描述文字要深一點才看得到 */
   .btn-buffer .btn-desc { color: #555; }
 
-  /* 彈窗 */
+  /* 彈窗（尚未開發提示） */
   .modal {
     display: none;
     position: fixed;
@@ -62,45 +81,64 @@
     text-align: center;
     border: 1px solid #333;
   }
-  .modal-icon { font-size: 36px; margin-bottom: 10px; }
+  .modal-icon  { font-size: 36px; margin-bottom: 10px; }
   .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
-  .modal-sub { font-size: 13px; color: #666; }
+  .modal-sub   { font-size: 13px; color: #666; }
 </style>
 </head>
 <body>
 
+<!-- ═══════════════════════════════════════════════════════
+     BLOCK 2：標題區
+     ← 改 App 名稱在這裡
+     ═══════════════════════════════════════════════════════ -->
 <div class="logo">⚾</div>
 <h1>揮棒分析</h1>
 <p class="sub">選擇打擊模式</p>
 
+
+<!-- ═══════════════════════════════════════════════════════
+     BLOCK 3：模式按鈕
+     ← 新增 / 修改模式在這裡
+     ← 連結檔名改 onclick="location.href='/XXX.html'"
+     ← 尚未開發的模式用 onclick="showModal()"
+     ═══════════════════════════════════════════════════════ -->
 <div class="btn-group">
+
+  <!-- 循環錄影模式（已完成） -->
   <button class="btn btn-buffer" onclick="location.href='/BufferRecord.html'">
-  <button class="btn btn-tee" onclick="location.href='/BufferRecord.html'">
     <span class="btn-icon">🔁</span>
     <div class="btn-text">
       <span class="btn-title">循環錄影模式</span>
-      <span class="btn-desc">球放置於T座，分析揮棒動作</span>
+      <span class="btn-desc">自動偵測揮棒，截取前後片段</span>
     </div>
   </button>
 
+  <!-- 手動錄影模式（已完成） -->
   <button class="btn btn-video" onclick="location.href='/VideoRecord.html'">
-  <button class="btn btn-toss" onclick="showModal()">
     <span class="btn-icon">🎥</span>
     <div class="btn-text">
       <span class="btn-title">手動錄影模式</span>
-      <span class="btn-desc">球放置於T座，分析揮棒動作</span>
+      <span class="btn-desc">手動開始／停止錄影</span>
     </div>
   </button>
 
+  <!-- 揮棒截圖模式（尚未開發） -->
   <button class="btn btn-screen" onclick="showModal()">
     <span class="btn-icon">⚡</span>
     <div class="btn-text">
       <span class="btn-title">揮棒截圖模式</span>
-      <span class="btn-desc">球放置於T座，分析揮棒動作</span>
+      <span class="btn-desc">擊球瞬間自動截圖</span>
     </div>
   </button>
+
 </div>
 
+
+<!-- ═══════════════════════════════════════════════════════
+     BLOCK 4：尚未開發彈窗
+     （不用動）
+     ═══════════════════════════════════════════════════════ -->
 <div class="modal" id="modal">
   <div class="modal-box">
     <div class="modal-icon">🚧</div>
@@ -109,6 +147,11 @@
   </div>
 </div>
 
+
+<!-- ═══════════════════════════════════════════════════════
+     BLOCK 5：JavaScript
+     （不用動）
+     ═══════════════════════════════════════════════════════ -->
 <script>
   function showModal() {
     const modal = document.getElementById('modal');
@@ -116,5 +159,6 @@
     setTimeout(() => modal.classList.remove('show'), 1500);
   }
 </script>
+
 </body>
 </html>

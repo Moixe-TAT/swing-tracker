@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>影片分析模式</title>
+
+<!-- ═══════════════════════════════════════════════════════
+     BLOCK 1：CSS 樣式
+     （不用動）
+     ═══════════════════════════════════════════════════════ -->
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0a; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding-bottom: 40px; }
+.topbar { display: flex; align-items: center; width: 100%; max-width: 480px; padding: 14px; gap: 10px; }
+.back-btn { background: #1a1a1a; border: none; color: #fff; width: 36px; height: 36px; border-radius: 10px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.topbar-title { font-size: 16px; font-weight: 600; }
+.version { font-size: 10px; color: #888; margin-left: 4px; }
+
+/* 上傳區塊 */
+.upload-section { width: 100%; max-width: 480px; padding: 0 14px 16px; }
+.upload-box {
+  border: 2px dashed #333;
+  border-radius: 16px;
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #111;
+}
+.upload-box:hover { border-color: #555; background: #161616; }
+.upload-box.dragover { border-color: #22c55e; background: #0f2e1a; }
+.upload-icon { font-size: 36px; margin-bottom: 10px; }
+.upload-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.upload-desc { font-size: 12px; color: #666; line-height: 1.6; }
+.upload-desc span { color: #f59e0b; }
+.upload-input { display: none; }
+.upload-btn { margin-top: 14px; padding: 10px 24px; border-radius: 10px; border: none; background: #fff; color: #000; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+/* 警告條（影片太長） */
+.warn-bar { display: none; width: 100%; max-width: 480px; margin: 0 14px 10px; padding: 10px 14px; background: #2a1f00; border-radius: 10px; border-left: 3px solid #f59e0b; font-size: 12px; color: #f59e0b; line-height: 1.6; }
+.warn-bar.show { display: block; }
+
+/* 進度條 */
+.progress-section { display: none; width: 100%; max-width: 480px; padding: 0 14px 16px; }
+.progress-section.show { display: block; }
+.progress-label { font-size: 12px; color: #666; margin-bottom: 8px; display: flex; justify-content: space-between; }
+.progress-bar { height: 6px; background: #1a1a1a; border-radius: 99px; overflow: hidden; }
+.progress-fill { height: 100%; background: #22c55e; border-radius: 99px; width: 0%; transition: width 0.2s; }
+
+/* 紀錄清單 */
+.list-section { width: 100%; max-width: 480px; padding: 0 14px; }
+.list-title { font-size: 13px; color: #666; font-weight: 500; margin-bottom: 10px; }
+.swing-list { display: flex; flex-direction: column; gap: 8px; }
+.swing-item { background: #1a1a1a; border-radius: 12px; overflow: hidden; cursor: default; }
+.swing-item.empty { opacity: 0.3; }
+.swing-item.filled { cursor: pointer; transition: background 0.15s; }
+.swing-item.filled:active { background: #222; }
+.swing-header { display: flex; align-items: center; gap: 10px; padding: 14px; }
+.swing-num { background: #2a2a2a; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #555; flex-shrink: 0; }
+.swing-item.filled .swing-num { background: #fff; color: #000; }
+.swing-stats-row { display: flex; gap: 14px; flex: 1; }
+.swing-stat { display: flex; flex-direction: column; }
+.swing-stat-label { font-size: 10px; color: #555; }
+.swing-stat-value { font-size: 14px; font-weight: 600; color: #444; }
+.swing-item.filled .swing-stat-value { color: #fff; }
+.swing-arrow { color: #555; font-size: 14px; }
+.swing-item.filled .swing-arrow { color: #888; }
+
+/* 彈出視窗 */
+.modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); align-items: flex-start; justify-content: center; z-index: 99; overflow-y: auto; padding: 20px; }
+.modal.show { display: flex; }
+.modal-box { background: #111; border-radius: 16px; width: 100%; max-width: 480px; overflow: hidden; margin: auto; }
+.modal-top { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid #1a1a1a; }
+.modal-title { font-size: 15px; font-weight: 600; }
+.modal-close { background: #222; border: none; color: #fff; width: 30px; height: 30px; border-radius: 8px; font-size: 16px; cursor: pointer; }
+
+/* Canvas 回放區 */
+.canvas-wrap { position: relative; width: 100%; background: #000; }
+.modal-canvas { width: 100%; display: block; }
+.playback-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #0a0a0a; }
+.play-pause-btn { background: #fff; border: none; color: #000; width: 34px; height: 34px; border-radius: 8px; font-size: 14px; cursor: pointer; flex-shrink: 0; }
+.seek-bar { flex: 1; height: 4px; background: #333; border-radius: 99px; cursor: pointer; appearance: none; }
+.seek-bar::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; cursor: pointer; }
+.time-label { font-size: 11px; color: #666; flex-shrink: 0; }
+
+/* 數據卡片區 */
+.data-section { padding: 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.data-card { background: #1a1a1a; border-radius: 10px; padding: 10px; text-align: center; }
+.data-card-label { font-size: 10px; color: #666; margin-bottom: 4px; }
+.data-card-value { font-size: 16px; font-weight: 600; color: #fff; }
+.data-card-unit { font-size: 10px; color: #555; }
+.data-card.green  { background: #0f2e1a; }
+.data-card.green .data-card-value { color: #22c55e; }
+.data-card.yellow { background: #2a2010; }
+.data-card.yellow .data-card-value { color: #f59e0b; }
+.data-card.red    { background: #2a1010; }
+.data-card.red .data-card-value { color: #ef4444; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     BLOCK 2：頂部導覽
+     ← 改版號在這裡
+     ═══════════════════════════════════════════════════════ -->
+<div class="topbar">
+  <button class="back-btn" onclick="location.href='index.html'">←</button>
+  <span class="topbar-title">🎬 影片分析模式</span>
+  <span class="version">v0.1.0</span>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     BLOCK 3：上傳區塊
+     （不用動）
+     ═══════════════════════════════════════════════════════ -->
+<div class="upload-section">
+  <div class="upload-box" id="upload-box"
+       onclick="document.getElementById('upload-input').click()"
+       ondragover="handleDragOver(event)"
+       ondragleave="handleDragLeave(event)"
+       ondrop="handleDrop(event)">
+    <div class="upload-icon">📤</div>
+    <div class="upload-title">上傳揮棒影片</div>
+    <div class="upload-desc">
+      支援 MP4、MOV 格式<br>
+      <span>建議裁切至揮棒前後各1秒，總長6秒以內</span>
+    </div>
+    <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('upload-input').click()">選擇影片</button>
+  </div>
+  <input type="file" id="upload-input" class="upload-input" accept="video/mp4,video/quicktime,.mov,.mp4" onchange="handleFileSelect(event)">
+</div>
+
+<!-- 影片太長警告 -->
+<div class="warn-bar" id="warn-bar">
+  ⚠️ 影片長度：<span id="warn-duration"></span> 秒，建議裁切至 6 秒以內<br>
+  較長的影片分析時間會增加，可繼續上傳或重新選擇
+</div>
+
+<!-- 分析進度條 -->
+<div class="progress-section" id="progress-section">
+  <div class="progress-label">
+    <span id="progress-text">分析中...</span>
+    <span id="progress-pct">0%</span>
+  </div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progress-fill"></div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     BLOCK 4：紀錄清單
+     （不用動）
+     ═══════════════════════════════════════════════════════ -->
+<div class="list-section">
+  <div class="list-title">📋 分析紀錄</div>
+  <div class="swing-list" id="swing-list"></div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     BLOCK 5：彈出視窗（回放 + 數據）
+     （不用動）
+     ═══════════════════════════════════════════════════════ -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-top">
+      <span class="modal-title" id="modal-title">第1次分析</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="canvas-wrap">
+      <canvas class="modal-canvas" id="modal-canvas"></canvas>
+    </div>
+    <div class="playback-bar">
+      <button class="play-pause-btn" id="play-pause-btn" onclick="togglePlayback()">▶</button>
+      <input type="range" class="seek-bar" id="seek-bar" min="0" max="100" value="0" oninput="seekTo(this.value)">
+      <span class="time-label" id="time-label">0.0s</span>
+    </div>
+    <div class="data-section" id="data-section"></div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     BLOCK 6：設定區 ← 改這裡調參數
+     ═══════════════════════════════════════════════════════ -->
+<script type="module">
+import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+const ANALYZE_CONFIG = {
+  skipFrames    : 6,    // 每幾幀分析一次（越大越快，越不準）
+  maxDuration   : 6,    // 超過幾秒顯示警告（秒）
+  swingSpeed    : 22,   // 揮棒觸發速度門檻
+  minVis        : 0.5,  // 關鍵點最低可見度
+  playbackRate  : 0.5,  // 回放倍速
+  model         : 'full', // lite / full / heavy
+};
+
+// 五角形關鍵點顏色
+const PENTAGON_COLOR  = '#f59e0b';
+const TRAIL_COLORS    = ['#3b82f6', '#f59e0b', '#ef4444']; // 慢/中/快
+
+// 評分設定（同 tee.html SCORE_CONFIG）
+const SCORE_CONFIG = {
+  headPenaltyRate : 0.35,
+  headPenaltyCap  : 25,
+  hipBonusRate    : 0.15,
+  hipBonusCap     : 15,
+  veloBonusRate   : 0.25,
+  veloBonusCap    : 20,
+  smoothBonusCap  : 15,
+  jitterFactor    : 18,
+};
+
+
+/* ═══════════════════════════════════════════════════════════
+   BLOCK 7：全域狀態變數
+   （不用動）
+   ═══════════════════════════════════════════════════════════ */
+
+let poseLandmarker = null;
+let analyzeRecords = [];
+let totalSlots     = 5;
+
+// 當前回放狀態
+let currentRecord   = null;
+let playbackTimer   = null;
+let currentFrameIdx = 0;
+let isPlaying       = false;
+
+
+/* ═══════════════════════════════════════════════════════════
+   BLOCK 8：MediaPipe 初始化
+   （換模型改 ANALYZE_CONFIG.model）
+   ═══════════════════════════════════════════════════════════ */
+
+async function initPose() {
+  const vision = await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+  );
+  const modelUrl = `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_${ANALYZE_CONFIG.model}/float16/1/pose_landmarker_${ANALYZE_CONFIG.model}.task`;
+  poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+    baseOptions: { modelAssetPath: modelUrl, delegate: "GPU" },
+    runningMode: "IMAGE",  // 影片分析用 IMAGE 模式，逐幀送入
+    numPoses: 1
+  });
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   BLOCK 9：上傳 & 拖拉處理
+   （不用動）
+   ═══════════════════════════════════════════════════════════ */
+
+window.handleDragOver = function (e) {
+  e.preventDefault();
+  document.getElementById('upload-box').classList.add('dragover');
+};
+window.handleDragLeave = function () {
+  document.getElementById('upload-box').classList.remove('dragover');
+};
+window.handleDrop = function (e) {
+  e.preventDefault();
+  document.getElementById('upload-box').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+};
+window.handleFileSelect = function (e) {
+  const file = e.target.files[0];
+  if (file) processFile(file);
+};
+
+async function processFile(file) {
+  // 檢查格式
+  if (!file.type.startsWith('video/')) {
+    alert('請上傳 MP4 或 MOV 影片檔案');
+    return;
+  }
+
+  // 建立暫時 video 元素取得影片資訊
+  const url    = URL.createObjectURL(file);
+  const tmpVid = document.createElement('video');
+  tmpVid.src   = url;
+  await new Promise(r => tmpVid.onloadedmetadata = r);
+
+  const duration = tmpVid.duration;
+
+  // 超過建議長度 → 顯示警告但不擋
+  const warnBar = document.getElementById('warn-bar');
+  if (duration > ANALYZE_CONFIG.maxDuration) {
+    document.getElementById('warn-duration').textContent = duration.toFixed(1);
+    warnBar.classList.add('show');
+  } else {
+    warnBar.classList.remove('show');
+  }
+
+  // 開始分析
+  await analyzeVideo(tmpVid, url, duration);
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   BLOCK 10：影片逐幀分析
+   （調跳幀數改 ANALYZE_CONFIG.skipFrames）
+   ═══════════════════════════════════════════════════════════ */
+
+async function analyzeVideo(vid, url, duration) {
+  if (!poseLandmarker) {
+    alert('AI 模型尚未載入，請稍候再試');
+    return;
+  }
+
+  // 顯示進度條
+  const progressSection = document.getElementById('progress-section');
+  const progressFill    = document.getElementById('progress-fill');
+  const progressText    = document.getElementById('progress-text');
+  const progressPct     = document.getElementById('progress-pct');
+  progressSection.classList.add('show');
+  progressFill.style.width = '0%';
+  progressText.textContent = '分析中...';
+
+  // 建立離屏 canvas 擷取幀
+  const offCanvas  = document.createElement('canvas');
+  const offCtx     = offCanvas.getContext('2d');
+
+  await new Promise(r => { vid.oncanplay = r; vid.load(); });
+  offCanvas.width  = vid.videoWidth  || 640;
+  offCanvas.height = vid.videoHeight || 480;
+
+  const fps        = 30; // 假設 30fps
+  const totalFrames = Math.floor(duration * fps);
+  const frames     = []; // 儲存每幀分析結果
+
+  // 揮棒數據
+  let trail          = [];
+  let lastWrist      = null;
+  let maxSpeed       = 0;
+  let swingFrameIdx  = -1;
+  let headPositions  = [];
+  let hipPositions   = [];
+  let anklePositions = [];
+  let ballTrail      = []; // 球軌跡（擊球後）
+
+  for (let f = 0; f < totalFrames; f += ANALYZE_CONFIG.skipFrames) {
+    // 跳到對應時間點
+    vid.currentTime = f / fps;
+    await new Promise(r => vid.onseeked = r);
+
+    // 擷取幀畫面
+    offCtx.drawImage(vid, 0, 0, offCanvas.width, offCanvas.height);
+
+    // MediaPipe 分析
+    const result = poseLandmarker.detect(offCanvas);
+    let landmarks = null;
+    if (result && result.landmarks && result.landmarks.length > 0) {
+      landmarks = result.landmarks[0];
+    }
+
+    // 計算手腕速度
+    let speed = 0;
+    if (landmarks) {
+      const wrist = landmarks[16]; // 右手腕
+      if (wrist && wrist.visibility > ANALYZE_CONFIG.minVis) {
+        const wx = wrist.x * offCanvas.width;
+        const wy = wrist.y * offCanvas.height;
+        if (lastWrist) {
+          const dx = wx - lastWrist.x, dy = wy - lastWrist.y;
+          speed = Math.sqrt(dx*dx + dy*dy);
+          if (speed > maxSpeed) maxSpeed = speed;
+        }
+        trail.push({ x: wx, y: wy, speed, frameIdx: frames.length });
+        lastWrist = { x: wx, y: wy };
+
+        // 身體追蹤
+        const nose   = landmarks[0];
+        const hipL   = landmarks[23], hipR  = landmarks[24];
+        const ankleL = landmarks[27], ankleR = landmarks[28];
+        if (nose   && nose.visibility   > ANALYZE_CONFIG.minVis)
+          headPositions.push({ x: nose.x * offCanvas.width });
+        if (hipL && hipR && hipL.visibility > ANALYZE_CONFIG.minVis && hipR.visibility > ANALYZE_CONFIG.minVis)
+          hipPositions.push({ x: ((hipL.x + hipR.x) / 2) * offCanvas.width });
+        if (ankleL && ankleR && ankleL.visibility > ANALYZE_CONFIG.minVis && ankleR.visibility > ANALYZE_CONFIG.minVis)
+          anklePositions.push({ lx: ankleL.x * offCanvas.width, rx: ankleR.x * offCanvas.width });
+
+        // 揮棒觸發
+        if (swingFrameIdx < 0 && speed > ANALYZE_CONFIG.swingSpeed) {
+          swingFrameIdx = frames.length;
+        }
+      }
+    }
+
+    frames.push({
+      time      : f / fps,
+      landmarks,
+      speed,
+      imageData : offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height),
+    });
+
+    // 更新進度條
+    const pct = Math.round((f / totalFrames) * 100);
+    progressFill.style.width = pct + '%';
+    progressPct.textContent  = pct + '%';
+
+    // 讓瀏覽器喘口氣
+    await new Promise(r => setTimeout(r, 0));
+  }
+
+  progressFill.style.width = '100%';
+  progressPct.textContent  = '100%';
+  progressText.textContent = '分析完成 ✓';
+  setTimeout(() => progressSection.classList.remove('show'), 1500);
+
+  // ── 計算最終數據 ──
+  const finalVelo  = Math.round(maxSpeed * 60 * 0.005 * 3.6);
+  let   finalAngle = 0;
+  if (swingFrameIdx >= 0 && frames[swingFrameIdx].landmarks) {
+    const lm    = frames[swingFrameIdx].landmarks;
+    const wrist = lm[16], elbow = lm[14];
+    if (wrist && elbow && wrist.visibility > ANALYZE_CONFIG.minVis) {
+      const wx = wrist.x * offCanvas.width, wy = wrist.y * offCanvas.height;
+      const ex = elbow.x * offCanvas.width, ey = elbow.y * offCanvas.height;
+      finalAngle = Math.round(Math.atan2(ey - wy, wx - ex) * 180 / Math.PI);
+    }
+  }
+  const rad      = Math.abs(finalAngle) * Math.PI / 180;
+  const v0ms     = maxSpeed * 60 * 0.005;
+  const finalDist = Math.round((v0ms * v0ms * Math.sin(2 * rad)) / 9.8);
+
+  // 身體數據
+  let headMove = 0, hipMove = 0, ankleSpan = 0;
+  if (headPositions.length > 1) {
+    const xs = headPositions.map(p => p.x);
+    headMove = Math.round(Math.max(...xs) - Math.min(...xs));
+  }
+  if (hipPositions.length > 1) {
+    const xs = hipPositions.map(p => p.x);
+    hipMove = Math.round(Math.max(...xs) - Math.min(...xs));
+  }
+  if (anklePositions.length > 1) {
+    const spans = anklePositions.map(p => Math.abs(p.lx - p.rx));
+    ankleSpan = Math.round(Math.max(...spans));
+  }
+
+  // 揮棒評分
+  let score = 100;
+  score -= Math.min(headMove * SCORE_CONFIG.headPenaltyRate, SCORE_CONFIG.headPenaltyCap);
+  score += Math.min(hipMove  * SCORE_CONFIG.hipBonusRate,    SCORE_CONFIG.hipBonusCap);
+  score += Math.min(finalVelo * SCORE_CONFIG.veloBonusRate,  SCORE_CONFIG.veloBonusCap);
+  let smoothness = 100;
+  if (trail.length > 5) {
+    let jitter = 0;
+    for (let i = 2; i < trail.length; i++) {
+      const a1 = Math.atan2(trail[i-1].y - trail[i-2].y, trail[i-1].x - trail[i-2].x);
+      const a2 = Math.atan2(trail[i].y   - trail[i-1].y, trail[i].x   - trail[i-1].x);
+      jitter += Math.abs(a2 - a1);
+    }
+    smoothness = Math.max(0, 100 - jitter * SCORE_CONFIG.jitterFactor);
+  }
+  score += smoothness * (SCORE_CONFIG.smoothBonusCap / 100);
+  const swingScore = Math.max(0, Math.min(100, Math.round(score)));
+
+  // 儲存結果
+  const num    = analyzeRecords.length + 1;
+  const record = {
+    num, finalVelo, finalAngle, finalDist, swingScore,
+    headMove, hipMove, ankleSpan,
+    frames, trail, swingFrameIdx,
+    canvasW: offCanvas.width, canvasH: offCanvas.height,
+    url,
+  };
+  analyzeRecords.push(record);
+  fillSlot(record);
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   BLOCK 11：繪製五角形 + 軌跡
+   （不用動）
+   ═══════════════════════════════════════════════════════════ */
+
+function drawPentagon(ctx, lm, cw, ch) {
+  if (!lm) return;
+  // 五個點：左腳踝(27)、右腳踝(28)、左肩(11)、右肩(12)、右手腕(16)
+  const pts = [27, 28, 12, 16, 11].map(idx => {
+    const p = lm[idx];
+    if (!p || p.visibility < ANALYZE_CONFIG.minVis) return null;
+    return { x: p.x * cw, y: p.y * ch };
+  });
+
+  // 畫五角形線段
+  ctx.beginPath();
+  let started = false;
+  for (const pt of pts) {
+    if (!pt) continue;
+    if (!started) { ctx.moveTo(pt.x, pt.y); started = true; }
+    else ctx.lineTo(pt.x, pt.y);
+  }
+  if (started) ctx.closePath();
+  ctx.strokeStyle = PENTAGON_COLOR;
+  ctx.lineWidth   = 2;
+  ctx.globalAlpha = 0.85;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // 畫各點圓點
+  for (const pt of pts) {
+    if (!pt) continue;
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = PENTAGON_COLOR;
+    ctx.fill();
+  }
+}
+
+function drawTrail(ctx, trail, upToFrameIdx) {
+  const visible = trail.filter(t => t.frameIdx <= upToFrameIdx);
+  if (visible.length < 2) return;
+  for (let i = 1; i < visible.length; i++) {
+    const t = visible[i], p = visible[i-1];
+    ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(t.x, t.y);
+    const spd = t.speed;
+    ctx.strokeStyle = spd < 8 ? TRAIL_COLORS[0] : spd < 20 ? TRAIL_COLORS[1] : TRAIL_COLORS[2];
+    ctx.lineWidth   = spd > 20 ? 5 : 3;
+    ctx.globalAlpha = (i / visible.length) * 0.85;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   BLOCK 12：回放控制
+   （不用動）
+   ═══════════════════════════════════════════════════════════ */
+
+function renderFrame(record, frameIdx) {
+  const mc  = document.getElementById('modal-canvas');
+  const ctx = mc.getContext('2d');
+  mc.width  = record.canvasW;
+  mc.height = record.canvasH;
+
+  const frame = record.frames[frameIdx];
+  if (!frame) return;
+
+  // 畫原始畫面
+  ctx.putImageData(frame.imageData, 0, 0);
+
+  // 畫揮棒軌跡（從擊球幀開始顯示）
+  if (record.swingFrameIdx >= 0 && frameIdx >= record.swingFrameIdx) {
+    drawTrail(ctx, record.trail, frameIdx);
+  }
+
+  // 畫五角形
+  if (frame.landmarks) {
+    drawPentagon(ctx, frame.landmarks, record.canvasW, record.canvasH);
+  }
+
+  // 更新 seek bar & 時間
+  const pct = (frameIdx / (record.frames.length - 1)) * 100;
+  document.getElementById('seek-bar').value   = pct;
+  document.getElementById('time-label').textContent = frame.time.toFixed(1) + 's';
+}
+
+window.togglePlayback = function () {
+  if (!currentRecord) return;
+  if (isPlaying) {
+    clearInterval(playbackTimer);
+    isPlaying = false;
+    document.getElementById('play-pause-btn').textContent = '▶';
+  } else {
+    if (currentFrameIdx >= currentRecord.frames.length - 1) currentFrameIdx = 0;
+    isPlaying = true;
+    document.getElementById('play-pause-btn').textContent = '⏸';
+    // 用 playbackRate 換算播放間隔
+    const intervalMs = (ANALYZE_CONFIG.skipFrames / 30) * 1000 / ANALYZE_CONFIG.playbackRate;
+    playbackTimer = setInterval(() => {
+      currentFrameIdx++;
+      if (currentFrameIdx >= currentRecord.frames.length) {
+        clearInterval(playbackTimer);
+        isPlaying = false;
+        document.getElementById('play-pause-btn').textContent = '▶';
+        return;
+      }
+      renderFrame(currentRecord, currentFrameIdx);
+    }, intervalMs);
+  }
+};
+
+window.seekTo = function (pct) {
+  if (!currentRecord) return;
+  clearInterval(playbackTimer);
+  isPlaying = false;
+  document.getElementById('play-pause-btn').textContent = '▶';
+  currentFrameIdx = Math.round((pct / 100) * (currentRecord.frames.length - 1));
+  renderFrame(currentRecord, currentFrameIdx);
+};
+
+
+/* ═══════════════════════════════════════════════════════════
+   BLOCK 13：清單 UI
+   （不用動）
+   ═══════════════════════════════════════════════════════════ */
+
+function initList() {
+  const list = document.getElementById('swing-list');
+  list.innerHTML = '';
+  for (let i = 0; i < totalSlots; i++) list.appendChild(makeEmptySlot());
+}
+
+function makeEmptySlot() {
+  const item = document.createElement('div');
+  item.className = 'swing-item empty';
+  item.innerHTML = `
+    <div class="swing-header">
+      <div class="swing-num">—</div>
+      <div class="swing-stats-row">
+        <div class="swing-stat"><span class="swing-stat-label">初速</span><span class="swing-stat-value">—</span></div>
+        <div class="swing-stat"><span class="swing-stat-label">仰角</span><span class="swing-stat-value">—</span></div>
+        <div class="swing-stat"><span class="swing-stat-label">距離</span><span class="swing-stat-value">—</span></div>
+      </div>
+      <span class="swing-arrow">›</span>
+    </div>`;
+  return item;
+}
+
+function fillSlot(record) {
+  const list  = document.getElementById('swing-list');
+  const slots = list.querySelectorAll('.swing-item');
+  const idx   = record.num - 1;
+  if (slots[idx]) {
+    slots[idx].className = 'swing-item filled';
+    slots[idx].onclick   = () => openModal(record);
+    slots[idx].innerHTML = `
+      <div class="swing-header">
+        <div class="swing-num">${record.num}</div>
+        <div class="swing-stats-row">
+          <div class="swing-stat"><span class="swing-stat-label">初速</span><span class="swing-stat-value">${record.finalVelo}<span style="font-size:10px;color:#555"> km/h</span></span></div>
+          <div class="swing-stat"><span class="swing-stat-label">仰角</span><span class="swing-stat-value">${record.finalAngle}<span style="font-size:10px;color:#555">°</span></span></div>
+          <div class="swing-stat"><span class="swing-stat-label">距離</span><span class="swing-stat-value">${record.finalDist > 0 ? record.finalDist : '—'}<span style="font-size:10px;color:#555">${record.finalDist > 0 ? ' m' : ''}</span></span></div>
+        </div>
+        <span class="swing-arrow">›</span>
+      </div>`;
+  }
+  list.appendChild(makeEmptySlot());
+  totalSlots++;
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   BLOCK 14：彈出視窗
+   （不用動）
+   ═══════════════════════════════════════════════════════════ */
+
+function openModal(record) {
+  currentRecord   = record;
+  currentFrameIdx = 0;
+  isPlaying       = false;
+  clearInterval(playbackTimer);
+  document.getElementById('play-pause-btn').textContent = '▶';
+  document.getElementById('modal-title').textContent = `第${record.num}次分析`;
+  document.getElementById('modal').classList.add('show');
+
+  // 渲染第一幀
+  renderFrame(record, 0);
+
+  // 數據卡片
+  const ds = document.getElementById('data-section');
+  const scoreClass = record.swingScore >= 80 ? 'green' : record.swingScore >= 60 ? 'yellow' : 'red';
+  ds.innerHTML = `
+    <div class="data-card ${scoreClass}">
+      <div class="data-card-label">揮棒評分</div>
+      <div class="data-card-value">${record.swingScore}<span class="data-card-unit"> 分</span></div>
+    </div>
+    <div class="data-card">
+      <div class="data-card-label">擊球初速</div>
+      <div class="data-card-value">${record.finalVelo}<span class="data-card-unit"> km/h</span></div>
+    </div>
+    <div class="data-card">
+      <div class="data-card-label">擊球仰角</div>
+      <div class="data-card-value">${record.finalAngle}<span class="data-card-unit">°</span></div>
+    </div>
+    <div class="data-card">
+      <div class="data-card-label">預測距離</div>
+      <div class="data-card-value">${record.finalDist > 0 ? record.finalDist : '—'}<span class="data-card-unit">${record.finalDist > 0 ? ' m' : ''}</span></div>
+    </div>
+    <div class="data-card">
+      <div class="data-card-label">頭部移動</div>
+      <div class="data-card-value">${record.headMove}<span class="data-card-unit"> px</span></div>
+    </div>
+    <div class="data-card">
+      <div class="data-card-label">重心位移</div>
+      <div class="data-card-value">${record.hipMove}<span class="data-card-unit"> px</span></div>
+    </div>`;
+}
+
+window.closeModal = function () {
+  clearInterval(playbackTimer);
+  isPlaying = false;
+  document.getElementById('modal').classList.remove('show');
+};
+
+
+/* ═══════════════════════════════════════════════════════════
+   BLOCK 15：啟動
+   （不用動）
+   ═══════════════════════════════════════════════════════════ */
+
+initList();
+try {
+  await initPose();
+} catch(e) {
+  alert('AI 模型載入失敗，請重新整理頁面');
+}
+
+</script>
+</body>
+</html>

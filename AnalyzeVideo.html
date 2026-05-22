@@ -12,10 +12,19 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #0a0a0a; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding-bottom: 40px; }
+
+/* 頂部 */
 .topbar { display: flex; align-items: center; width: 100%; max-width: 480px; padding: 14px; gap: 10px; }
 .back-btn { background: #1a1a1a; border: none; color: #fff; width: 36px; height: 36px; border-radius: 10px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .topbar-title { font-size: 16px; font-weight: 600; }
 .version { font-size: 10px; color: #888; margin-left: 4px; }
+
+/* 身高體重輸入框（右上角） */
+.body-inputs { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.body-input-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.body-input-label { font-size: 9px; color: #666; }
+.body-input { width: 52px; padding: 5px 6px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #fff; font-size: 12px; text-align: center; }
+.body-input:focus { outline: none; border-color: #555; }
 
 /* 上傳區塊 */
 .upload-section { width: 100%; max-width: 480px; padding: 0 14px 16px; }
@@ -106,8 +115,20 @@ body { background: #0a0a0a; color: #fff; font-family: sans-serif; display: flex;
      ═══════════════════════════════════════════════════════ -->
 <div class="topbar">
   <button class="back-btn" onclick="location.href='index.html'">←</button>
-  <span class="topbar-title">🎬 影片分析模式</span>
-  <span class="version">v0.1.0</span>
+  <span class="topbar-title">🎬 影片分析</span>
+  <span class="version">v0.2.0</span>
+
+  <!-- 右上角身高體重 -->
+  <div class="body-inputs">
+    <div class="body-input-wrap">
+      <span class="body-input-label">身高 cm</span>
+      <input class="body-input" type="number" id="input-height" placeholder="175" min="100" max="250">
+    </div>
+    <div class="body-input-wrap">
+      <span class="body-input-label">體重 kg</span>
+      <input class="body-input" type="number" id="input-weight" placeholder="70" min="30" max="200">
+    </div>
+  </div>
 </div>
 
 
@@ -125,8 +146,9 @@ body { background: #0a0a0a; color: #fff; font-family: sans-serif; display: flex;
     <div class="upload-title">上傳揮棒影片</div>
     <div class="upload-desc">
       支援 MP4、MOV 格式<br>
-      <span>建議裁切至揮棒前後各1秒，總長6秒以內</span>
-    </div>
+      <span class="highlight">建議裁切至揮棒前後各1秒，總長6秒以內</span><br>
+      <span class="tip">📱 iPhone 慢動作（120/240fps）分析更準確</span>
+    </div>  
     <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('upload-input').click()">選擇影片</button>
   </div>
   <input type="file" id="upload-input" class="upload-input" accept="video/mp4,video/quicktime,.mov,.mp4" onchange="handleFileSelect(event)">
@@ -190,7 +212,7 @@ body { background: #0a0a0a; color: #fff; font-family: sans-serif; display: flex;
 import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
 
 const ANALYZE_CONFIG = {
-  skipFrames    : 6,    // 每幾幀分析一次（越大越快，越不準）
+  skipFrames    : 3,    // 每幾幀分析一次（越大越快，越不準）
   maxDuration   : 6,    // 超過幾秒顯示警告（秒）
   swingSpeed    : 22,   // 揮棒觸發速度門檻
   minVis        : 0.5,  // 關鍵點最低可見度
@@ -199,8 +221,12 @@ const ANALYZE_CONFIG = {
 };
 
 // 五角形關鍵點顏色
+// 五邊形（雙肩 + 雙手腕 + 右手掌根）
+const PENTAGON_POINTS = [11, 15, 17, 16, 12];
 const PENTAGON_COLOR  = '#f59e0b';
-const TRAIL_COLORS    = ['#3b82f6', '#f59e0b', '#ef4444']; // 慢/中/快
+const FOOT_LINE_COLOR = '#3b82f6';
+const TRAIL_COLORS    = ['#3b82f6', '#f59e0b', '#ef4444'];
+const HEAD_DOT_COLOR  = '#ef4444';
 
 // 評分設定（同 tee.html SCORE_CONFIG）
 const SCORE_CONFIG = {
@@ -250,7 +276,31 @@ async function initPose() {
 
 
 /* ═══════════════════════════════════════════════════════════
-   BLOCK 9：上傳 & 拖拉處理
+   BLOCK 9：身高換算比例
+   （不用動；身高從右上角輸入框取得）
+   ═══════════════════════════════════════════════════════════ */
+function getPixelToCm(landmarks, canvasH) {
+  const heightCm = parseFloat(document.getElementById('input-height').value);
+  if (!heightCm || !landmarks) return null;
+
+  const nose     = landmarks[0];
+  const ankleL   = landmarks[27];
+  const ankleR   = landmarks[28];
+  if (!nose || !ankleL || !ankleR) return null;
+
+  const headY  = nose.y * canvasH;
+  const ankleY = Math.max(ankleL.y, ankleR.y) * canvasH;
+  const pixelH = Math.abs(ankleY - headY);
+  if (pixelH < 10) return null;
+
+  // 實際身高比像素身高（cm/px）
+  // 乘以 0.93 補正（鼻子到腳踝約是身高的 93%）
+  return (heightCm * 0.93) / pixelH;
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   BLOCK 10：上傳 & 拖拉處理
    （不用動）
    ═══════════════════════════════════════════════════════════ */
 
@@ -302,7 +352,7 @@ async function processFile(file) {
 
 
 /* ═══════════════════════════════════════════════════════════
-   BLOCK 10：影片逐幀分析
+   BLOCK 11：影片逐幀分析
    （調跳幀數改 ANALYZE_CONFIG.skipFrames）
    ═══════════════════════════════════════════════════════════ */
 
@@ -336,6 +386,8 @@ async function analyzeVideo(vid, url, duration) {
   // 揮棒數據
   let trail          = [];
   let lastWrist      = null;
+  let maxAnkleSpan = 0;
+  let maxAnkleFrame = 0;
   let maxSpeed       = 0;
   let swingFrameIdx  = -1;
   let headPositions  = [];
@@ -378,11 +430,34 @@ async function analyzeVideo(vid, url, duration) {
         const hipL   = landmarks[23], hipR  = landmarks[24];
         const ankleL = landmarks[27], ankleR = landmarks[28];
         if (nose   && nose.visibility   > ANALYZE_CONFIG.minVis)
-          headPositions.push({ x: nose.x * offCanvas.width });
+          headPositions.push({
+            x: nose.x * offCanvas.width,
+            frameIdx: frames.length
+          });
         if (hipL && hipR && hipL.visibility > ANALYZE_CONFIG.minVis && hipR.visibility > ANALYZE_CONFIG.minVis)
           hipPositions.push({ x: ((hipL.x + hipR.x) / 2) * offCanvas.width });
-        if (ankleL && ankleR && ankleL.visibility > ANALYZE_CONFIG.minVis && ankleR.visibility > ANALYZE_CONFIG.minVis)
-          anklePositions.push({ lx: ankleL.x * offCanvas.width, rx: ankleR.x * offCanvas.width });
+        if (
+          ankleL &&
+          ankleR &&
+          ankleL.visibility > ANALYZE_CONFIG.minVis &&
+          ankleR.visibility > ANALYZE_CONFIG.minVis
+        ) {
+
+        anklePositions.push({
+          lx: ankleL.x * offCanvas.width,
+          rx: ankleR.x * offCanvas.width
+        });
+
+        const span = Math.abs(
+        ankleL.x * offCanvas.width -
+        ankleR.x * offCanvas.width
+  );
+
+  if (span > maxAnkleSpan) {
+    maxAnkleSpan = span;
+    maxAnkleFrame = frames.length;
+  }
+}
 
         // 揮棒觸發
         if (swingFrameIdx < 0 && speed > ANALYZE_CONFIG.swingSpeed) {
@@ -430,9 +505,14 @@ async function analyzeVideo(vid, url, duration) {
 
   // 身體數據
   let headMove = 0, hipMove = 0, ankleSpan = 0;
-  if (headPositions.length > 1) {
-    const xs = headPositions.map(p => p.x);
-    headMove = Math.round(Math.max(...xs) - Math.min(...xs));
+  const filteredHead = headPositions.filter(
+    p => p.frameIdx >= maxAnkleFrame
+    );
+  if (filteredHead.length > 1) {
+    const xs = filteredHead.map(p => p.x);
+    headMove = Math.round(
+    Math.max(...xs) - Math.min(...xs)
+    );
   }
   if (hipPositions.length > 1) {
     const xs = hipPositions.map(p => p.x);
@@ -476,15 +556,15 @@ async function analyzeVideo(vid, url, duration) {
 
 
 /* ═══════════════════════════════════════════════════════════
-   BLOCK 11：繪製五角形 + 軌跡
+   BLOCK 12：繪製五角形 + 軌跡
    （不用動）
    ═══════════════════════════════════════════════════════════ */
 
 function drawPentagon(ctx, lm, cw, ch) {
   if (!lm) return;
-  // 五個點：左腳踝(27)、右腳踝(28)、左肩(11)、右肩(12)、右手腕(16)
-  const pts = [27, 28, 12, 16, 11].map(idx => {
-    const p = lm[idx];
+  // 五邊形：雙肩 + 雙手腕 + 手掌根
+  const pts = [11, 15, 17, 16, 12].map(idx => {
+  const p = lm[idx];
     if (!p || p.visibility < ANALYZE_CONFIG.minVis) return null;
     return { x: p.x * cw, y: p.y * ch };
   });
@@ -512,6 +592,54 @@ function drawPentagon(ctx, lm, cw, ch) {
     ctx.fillStyle = PENTAGON_COLOR;
     ctx.fill();
   }
+  const ankleL = lm[27];
+  const ankleR = lm[28];
+
+  if (
+    ankleL &&
+    ankleR &&
+    ankleL.visibility > ANALYZE_CONFIG.minVis &&
+    ankleR.visibility > ANALYZE_CONFIG.minVis
+  ) {
+
+  const lx = ankleL.x * cw;
+  const ly = ankleL.y * ch;
+
+  const rx = ankleR.x * cw;
+  const ry = ankleR.y * ch;
+
+  // 畫腳部連線
+  ctx.beginPath();
+  ctx.moveTo(lx, ly);
+  ctx.lineTo(rx, ry);
+
+  ctx.strokeStyle = '#3b82f6';
+  ctx.lineWidth = 4;
+  ctx.globalAlpha = 0.9;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // 計算像素距離
+  const pixelDist = Math.abs(rx - lx);
+
+  // 換算真實公分
+  const pixelToCm = getPixelToCm(lm, ch);
+
+  if (pixelToCm) {
+
+    const realCm = Math.round(pixelDist * pixelToCm);
+
+    // 顯示距離文字
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '20px sans-serif';
+
+    ctx.fillText(
+      `${realCm} cm`,
+      (lx + rx) / 2 - 30,
+      ly - 20
+    );
+    }
+  }
 }
 
 function drawTrail(ctx, trail, upToFrameIdx) {
@@ -531,7 +659,7 @@ function drawTrail(ctx, trail, upToFrameIdx) {
 
 
 /* ═══════════════════════════════════════════════════════════
-   BLOCK 12：回放控制
+   BLOCK 13：回放控制
    （不用動）
    ═══════════════════════════════════════════════════════════ */
 
@@ -599,7 +727,7 @@ window.seekTo = function (pct) {
 
 
 /* ═══════════════════════════════════════════════════════════
-   BLOCK 13：清單 UI
+   BLOCK 14：清單 UI
    （不用動）
    ═══════════════════════════════════════════════════════════ */
 
@@ -649,7 +777,7 @@ function fillSlot(record) {
 
 
 /* ═══════════════════════════════════════════════════════════
-   BLOCK 14：彈出視窗
+   BLOCK 15：彈出視窗
    （不用動）
    ═══════════════════════════════════════════════════════════ */
 
@@ -703,7 +831,7 @@ window.closeModal = function () {
 
 
 /* ═══════════════════════════════════════════════════════════
-   BLOCK 15：啟動
+   BLOCK 16：啟動
    （不用動）
    ═══════════════════════════════════════════════════════════ */
 
